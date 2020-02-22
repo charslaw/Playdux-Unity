@@ -1,6 +1,13 @@
 {
-    "name": "com.coleschultz.aresso",
-    "version": "1.0.0",
+    "name": "dev.coleschultz.aresso",
+    "version": "0.0.0",
     "displayName": "AReSSO - Redux for Unity",
-    "unity": "2018.1"
+    "description": "Action - Reducer - Store - Selector - Observer\nAReSSO is a Redux-style state container intended for use in Unity.",
+    "unity": "2018.1",
+    "author": {
+        "name": "Cole Schultz",
+        "url": "https://coleschultz.dev"
+      },
+      "repository": "https://github.com/schultzcole/AReSSO.git",
+      "license": "MIT"
 }
