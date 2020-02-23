@@ -7,8 +7,8 @@ namespace AReSSO.Test
         [Test, Repeat(10)]
         public void EachStateNodeGetsUniqueId()
         {
-            var node1 = new TestStateNode(1);
-            var node2 = new TestStateNode(1); // even if their values are the same
+            var node1 = new SimpleTestStateNode(1);
+            var node2 = new SimpleTestStateNode(1); // even if their values are the same
             
             Assert.AreNotEqual(node1.Id, node2.Id);
         }
@@ -16,7 +16,7 @@ namespace AReSSO.Test
         [Test]
         public void ProtectedCopyInstructorCopiesId()
         {
-            var oldState = new TestStateNode(12);
+            var oldState = new SimpleTestStateNode(12);
             var oldId = oldState.Id;
 
             var newState = oldState.Copy();
@@ -28,7 +28,7 @@ namespace AReSSO.Test
         [Test]
         public void CopyWithDeltaChangesProp()
         {
-            var state = new TestStateNode(42);
+            var state = new SimpleTestStateNode(42);
 
             var newState = state.Copy(prop: 100);
             

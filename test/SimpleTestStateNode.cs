@@ -1,22 +1,22 @@
 namespace AReSSO.Test
 {
-    public class TestStateNode : StateNode
+    public class SimpleTestStateNode : StateNode
     {
         public int Prop { get; }
 
-        public TestStateNode(int prop)
+        public SimpleTestStateNode(int prop)
         {
             Prop = prop;
         }
-        private TestStateNode(TestStateNode old, PropertyChange<int> newProp) : base(old)
+        private SimpleTestStateNode(SimpleTestStateNode old, PropertyChange<int> newProp) : base(old)
         {
             Prop = newProp.Else(old.Prop);
         }
         
-        public TestStateNode Copy(PropertyChange<int> prop = default) =>
-            new TestStateNode(this, prop);
+        public SimpleTestStateNode Copy(PropertyChange<int> prop = default) =>
+            new SimpleTestStateNode(this, prop);
         
-        protected bool Equals(TestStateNode other)
+        protected bool Equals(SimpleTestStateNode other)
         {
             return Prop == other.Prop;
         }
@@ -26,7 +26,7 @@ namespace AReSSO.Test
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((TestStateNode) obj);
+            return Equals((SimpleTestStateNode) obj);
         }
 
         public override int GetHashCode()

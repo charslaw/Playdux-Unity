@@ -7,7 +7,7 @@ namespace AReSSO.Test
         [Test]
         public void GetStateOnNewStoreReturnsInitialState()
         {
-            TestStateNode init = new TestStateNode(42);
+            SimpleTestStateNode init = new SimpleTestStateNode(42);
             var store = new Store(init);
 
             Assert.AreEqual(init, store.State);
