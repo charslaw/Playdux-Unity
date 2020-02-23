@@ -1,11 +1,10 @@
 using System;
 
-namespace AReSSO.Examples
+namespace AReSSO.UsageExamples
 {
     /// <summary>
-    /// A song is an example of something that won't change, so it doesn't need a Copy method or copy constructor.
-    /// Since this state object won't change, it doesn't need to subclass StateNode, however it should implement
-    /// Equals and GetHashCode correctly. In this case I have added IEquatable to make that explicit.
+    /// A song is an example of something that won't change, so it doesn't need a Copy method or copy constructor,
+    /// however it should still implement IEquatable.
     /// </summary>
     public class ExampleSong : IEquatable<ExampleSong>
     {

@@ -1,17 +1,18 @@
 using System;
 using System.Collections.Generic;
 
-namespace AReSSO.Examples
+namespace AReSSO.UsageExamples
 {
     /// <summary>
-    /// An example StateNode which demonstrates best practices for subclassing StateNode.
+    /// An example state object which demonstrates best practices for state objects.
+    /// State objects *must* implement IEquatable.
     ///
     /// It would be very possible to statically generate an implementation of this given an interface with something like
     /// Fody (https://github.com/Fody/Home) or another similar framework.
     /// </summary>
-    public class ExamplePerson : StateNode
+    public class ExamplePerson : IEquatable<ExamplePerson>
     {
-        // All properties of StateNodes *must* be readonly (no setters).
+        // All properties of state objects *must* be readonly (no setters).
         public string Name { get; }
         public DateTime Birthday { get; }
         
@@ -28,7 +29,6 @@ namespace AReSSO.Examples
 
         /// <summary>
         /// This is a private copy constructor. It is used to create a copy when Copy is called.
-        /// Note the call to the protected base copy constructor. That is very important.
         /// </summary>
         /// <remarks>
         /// This method is basically entirely boilerplate and could easily be automated.
@@ -36,7 +36,7 @@ namespace AReSSO.Examples
         private ExamplePerson(ExamplePerson old,
             PropertyChange<string> newName,
             PropertyChange<DateTime> newBirthday,
-            PropertyChange<IReadOnlyList<ExampleSong>> newFavoriteSongs) : base(old)
+            PropertyChange<IReadOnlyList<ExampleSong>> newFavoriteSongs)
         {
             Name = newName.Else(old.Name);
             Birthday = newBirthday.Else(old.Birthday);
@@ -65,11 +65,13 @@ namespace AReSSO.Examples
         // Generic implementations of Equals and GetHashCode.
         // Prime candidates for code generation; in fact these implementations were auto-implemented by Rider.
         
-        protected bool Equals(ExamplePerson other)
+        public bool Equals(ExamplePerson other)
         {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
             return Name == other.Name && Birthday.Equals(other.Birthday) && Equals(FavoriteSongs, other.FavoriteSongs);
         }
-        
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
