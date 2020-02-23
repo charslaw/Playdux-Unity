@@ -1,4 +1,4 @@
-namespace AReSSO
+namespace AReSSO.CopyUtils
 {
     /// <summary>
     /// Represents the possibility of a changed property on a state object.

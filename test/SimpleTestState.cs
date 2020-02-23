@@ -1,3 +1,5 @@
+using AReSSO.CopyUtils;
+
 namespace AReSSO.Test
 {
     public class SimpleTestState
