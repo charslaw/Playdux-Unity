@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UniRx;
 
 namespace AReSSO
@@ -12,21 +13,21 @@ namespace AReSSO
     {
         /// <summary>The current state within the store.</summary>
         public TRootState State { get; private set; }
-        
+
         // The reducer used when an action is dispatched to the store.
         private readonly Func<TRootState, IAction, TRootState> rootReducer;
-        // An IObservable to allow client code to observe changes to store state.
-        private readonly BehaviorSubject<TRootState> stateSubject;
         // Used to prevent multiple threads from concurrently modifying state via reducers.
         private readonly object reduceLock = new object();
-        // Used to prevent multiple threads from concurrently emitting into stateSubject.
-        private readonly object stateSubjectLock = new object();
         
+        // A list of observers paying attention to the state in this store
+        private readonly List<IStoreObserver> observers = new List<IStoreObserver>();
+        // Used to prevent multiple threads from concurrently adding to observers while notifying observers.
+        private readonly object observersLock = new object();
+
         /// <summary>Create a new store with a given initial state and reducer</summary>
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
         {
             State = initialState;
-            stateSubject = new BehaviorSubject<TRootState>(initialState);
             this.rootReducer = rootReducer;
         }
 
@@ -43,28 +44,49 @@ namespace AReSSO
                 newState = rootReducer(State, action);
             }
 
-            if (!newState.Equals(State))
-            {
-                lock (stateSubjectLock)
-                {
-                    stateSubject.OnNext(newState);
-                }
-            }
-
+            if (newState.Equals(State)) return;
+            
             State = newState;
+            foreach (var observer in observers)
+            {
+                observer.Notify(State);
+            }
         }
 
         /// <summary>Returns the current state filtered by the given selector.</summary>
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
 
-        /// <summary>Produces an IObservable looking at the object specified by the given selector.</summary>
-        /// <remarks>The returned IObservable will emit immediately on subscribe, and will subsequently only notify
-        /// when the selected object has changed.</remarks>
-        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector)
+        /// <summary>Produces an IObservable looking at the state specified by the given selector.</summary>
+        /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
+        public IObservable<TSelectedState> ObservableFor<TSelectedState>(
+            Func<TRootState, TSelectedState> selector,
+            bool notifyImmediately = false)
         {
-            lock (stateSubjectLock)
+            var observer = new StoreObserver<TSelectedState>(selector, State);
+            observers.Add(observer);
+            return observer.Subject.DistinctUntilChanged().Skip(notifyImmediately ? 0 : 1);
+        }
+
+        private interface IStoreObserver
+        {
+            void Notify(TRootState state);
+        }
+        
+        /// <summary>Represents a subscription to the store state.</summary>
+        private class StoreObserver<TSelectedState> : IStoreObserver
+        {
+            private readonly Func<TRootState, TSelectedState> selector;
+            public readonly BehaviorSubject<TSelectedState> Subject;
+
+            public StoreObserver(Func<TRootState, TSelectedState> selector, TRootState initial)
             {
-                return stateSubject.AsObservable().CatchIgnore().Select(selector).DistinctUntilChanged().Share();
+                this.selector = selector;
+                Subject = new BehaviorSubject<TSelectedState>(this.selector(initial));
+            }
+
+            public void Notify(TRootState state)
+            {
+                Subject.OnNext(selector(state));
             }
         }
     }

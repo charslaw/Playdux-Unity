@@ -46,7 +46,7 @@ namespace AReSSO.Test
             var store = new Store<SimpleTestState>(init, (state, _) => state);
 
             int notified = 0;
-            store.ObservableFor(state => state).Skip(1).Subscribe(_ => notified++);
+            store.ObservableFor(state => state).Subscribe(_ => notified++);
             
             store.Dispatch(new EmptyAction());
 
@@ -60,7 +60,7 @@ namespace AReSSO.Test
             var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(567412));
 
             int notified = 0;
-            store.ObservableFor(state => state).Skip(1).Subscribe(_ => notified++);
+            store.ObservableFor(state => state).Subscribe(_ => notified++);
             
             store.Dispatch(new EmptyAction());
 
@@ -75,10 +75,10 @@ namespace AReSSO.Test
 
             int notified = 0;
             int errorSeen = 0;
-            store.ObservableFor(state => state).Skip(1).Subscribe(
+            store.ObservableFor(state => state).Subscribe(
                 state => notified++,
                 error => errorSeen++);
-            store.ObservableFor(state => state).Skip(1).Subscribe(
+            store.ObservableFor(state => state).Subscribe(
                 state => throw new Exception(),
                 error => { });
 
@@ -99,7 +99,7 @@ namespace AReSSO.Test
             var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
             
             int notified = 0;
-            store.ObservableFor(state => state.X).Skip(1).Subscribe(_ => notified++);
+            store.ObservableFor(state => state.X).Subscribe(_ => notified++);
             
             store.Dispatch(new EmptyAction());
 
@@ -113,11 +113,23 @@ namespace AReSSO.Test
             var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
             
             int notified = 0;
-            store.ObservableFor(state => state.Y).Skip(1).Subscribe(_ => notified++);
+            store.ObservableFor(state => state.Y).Subscribe(_ => notified++);
             
             store.Dispatch(new EmptyAction());
 
             Assert.AreEqual(1, notified);
+        }
+
+        [Test]
+        public void CanUnsubscribeWithoutBreakingEverything()
+        {
+            Point init = new Point(4, 2);
+            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
+            
+            var disposable = store.ObservableFor(state => state.Y).Subscribe(_ => { });
+            disposable.Dispose();
+            
+            Assert.DoesNotThrow(() => store.Dispatch(new EmptyAction()));
         }
     }
 }
