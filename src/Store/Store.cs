@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UniRx;
 
-namespace AReSSO
+namespace AReSSO.Store
 {
     /// <summary>
     /// An AReSSO state container. The core of AReSSO.
