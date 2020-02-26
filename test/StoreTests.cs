@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using UniRx;
+using AReSSO.Store;
 
 namespace AReSSO.Test
 {

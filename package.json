@@ -1,6 +1,6 @@
 {
     "name": "dev.coleschultz.aresso",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "displayName": "AReSSO - Redux for Unity",
     "description": "Action - Reducer - Store - Selector - Observer\nAReSSO is a Redux-style state container intended for use in Unity.",
     "unity": "2018.1",
