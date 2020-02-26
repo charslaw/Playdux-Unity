@@ -27,22 +27,6 @@ namespace AReSSO.UsageExamples
             Birthday = birthday;
             FavoriteSongs = favoriteSongs;
         }
-
-        /// <summary>
-        /// This is a private copy constructor. It is used to create a copy when Copy is called.
-        /// </summary>
-        /// <remarks>
-        /// This method is basically entirely boilerplate and could easily be automated.
-        /// </remarks>
-        private ExamplePerson(ExamplePerson old,
-            PropertyChange<string> newName,
-            PropertyChange<DateTime> newBirthday,
-            PropertyChange<IReadOnlyList<ExampleSong>> newFavoriteSongs)
-        {
-            Name = newName.Else(old.Name);
-            Birthday = newBirthday.Else(old.Birthday);
-            FavoriteSongs = newFavoriteSongs.Else(old.FavoriteSongs);
-        }
         
         /// <summary>
         /// The copy function is a pure function that returns a copy of a state.
@@ -59,8 +43,15 @@ namespace AReSSO.UsageExamples
         public ExamplePerson Copy(
             PropertyChange<string> name = default,
             PropertyChange<DateTime> birthday = default,
-            PropertyChange<IReadOnlyList<ExampleSong>> favoriteSongs = default) =>
-            new ExamplePerson(this, name, birthday, favoriteSongs);
+            PropertyChange<IReadOnlyList<ExampleSong>> favoriteSongs = default)
+        {
+            if (name.Changed || birthday.Changed || favoriteSongs.Changed)
+            {
+                return new ExamplePerson(name.Else(Name), birthday.Else(Birthday), favoriteSongs.Else(FavoriteSongs));
+            }
+
+            return this;
+        }
 
         #region Equals Implementations
         // Generic implementations of Equals and GetHashCode.

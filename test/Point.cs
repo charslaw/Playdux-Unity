@@ -14,14 +14,17 @@ namespace AReSSO.Test
             Y = y;
         }
 
-        private Point(Point old, PropertyChange<float> newX, PropertyChange<float> newY)
+        public Point Copy(
+            PropertyChange<float> x = default,
+            PropertyChange<float> y = default)
         {
-            X = newX.Else(old.X);
-            Y = newY.Else(old.Y);
-        }
+            if (x.Changed || y.Changed)
+            {
+                return new Point(x.Else(X), y.Else(Y));
+            }
 
-        public Point Copy(PropertyChange<float> x = default, PropertyChange<float> y = default) =>
-            new Point(this, x, y);
+            return this;
+        }
 
         public bool Equals(Point other)
         {
