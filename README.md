@@ -55,8 +55,11 @@ myStore.ObservableFor(state => state.Person.Name).Subscribe(name => Debug.Log($"
 
 This example uses reactive extensions (UniRx) to subscribe to the resulting IObservable with a lambda.
 
-TODO: add explaination of `notifyImmediately` parameter for `ObservableFor`.
+`ObservableFor` has an additional optional parameter, `notifyImmediately`. If this parameter is `true`, the returned `IObservable` will emit the current state as soon as it is subscribed. If it is `false`, the observable will emit the next time that segment of state has changed.
 
-## Future Additions
+## Future Feature Additions
 
-TODO
+- Add useful example projects. These will likely be in a different repo. (issue #4)
+- Add a MonoBehaviour wrapper for Store so that the store can be injected into MonoBehaviour components that depend on it. (issue #6).
+- Add SideEffectors. SideEffectors are intended to be AReSSO's corollary to Redux's Middlewares or ngrx's Effects. They react to actions to accomplish side effects, whereas reducers cannot accomplish side effects. (issue #3)
+- AReSSO devtools. I want to add Redux-like devtools in the Unity Editor to allow for time-travel debugging, etc. (issue #5)

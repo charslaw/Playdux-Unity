@@ -2,7 +2,11 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0 2020-23-2
+---
+
+## Version 2.0.0
+
+*Merged to master on 2020-25-2*
 
 Moves `Store` and `IAction` to the `Store` namespace. Though small, this is a breaking change, thus v2.0.0.
 
@@ -12,11 +16,17 @@ Moves `Store` and `IAction` to the `Store` namespace. Though small, this is a br
 
 ### CHANGED
 
+- Update readme with more detailed usage info.
+- Modify change log formatting to make it more readable.
 - Moved `Store` to `AReSSO.Store` namespace.
 - Moved `IAction` to `AReSSO.Store` namespace.
 - Moved `PropertyChange` to `AReSSO.CopyUtils` namespace.
 
-## 1.0.0 2020-23-2
+---
+
+## Version 1.0.0
+
+*Merged to master on 2020-23-2*
 
 This is the first functional version of AReSSO.
 
@@ -31,6 +41,10 @@ and get an observable version of the store that updates when the store changes.
 - Add a few example state objects with documentation.
 - Add `PropertyChange` utility to make writing `Copy` methods easier.
 
-## 0.0.0 2020-20-2
+---
+
+## Version 0.0.0
+
+*Merged to master on 2020-20-2*
 
 Initial version.
