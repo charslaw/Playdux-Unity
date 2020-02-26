@@ -1,7 +1,7 @@
 namespace AReSSO.CopyUtils
 {
     /// <summary>
-    /// Represents the possibility of a changed property on a state object.
+    /// Represents a potentially changed property.
     /// </summary>
     public struct PropertyChange<T>
     {
@@ -24,16 +24,13 @@ namespace AReSSO.CopyUtils
 
         /// <summary>
         /// Implicitly wrap up a value in a PropertyChange. This makes it very fluent to specify a change.
-        ///
-        /// This allows for usage like this:
-        /// <code>
-        ///     myCopyableThing.Copy(prop: newVal);
-        /// </code>
-        /// Rather than this:
-        /// <code>
-        ///     myCopyableThing.Copy(prop: new PropertyChange(newVal));
-        /// </code>
         /// </summary>
+        /// <remarks>
+        /// This allows for usage like this:
+        /// <code> myCopyableThing.Copy(prop: newVal); </code>
+        /// Rather than this:
+        /// <code> myCopyableThing.Copy(prop: new PropertyChange(newVal)); </code>
+        /// </remarks>
         public static implicit operator PropertyChange<T>(T value) => new PropertyChange<T>(true, value);
     }
 }
