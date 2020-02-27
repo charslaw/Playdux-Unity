@@ -2,6 +2,22 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## NEXT VERSION (2.1.0)
+
+*Not merged*
+
+Add `StoreBehaviour`, a `MonoBehaviour` wrapper for a `Store`. Also extracts interfaces for `Store`.
+
+### ADDED
+
+- `StoreBehaviour`
+- `StoreBehaviour` examples
+
+### CHANGED
+
+- Extract `IStore`, `IActionDispatcher`, and `IStateContainer` from `Store`.
+- Simplify, improve the example `Copy` behavior for example classes.
+
 ---
 
 ## Version 2.0.0
