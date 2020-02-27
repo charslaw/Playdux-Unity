@@ -2,11 +2,31 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Version 2.1.0
+
+*Merged to master on 2020-02-26*
+
+Add `StoreBehaviour`, a `MonoBehaviour` wrapper for a `Store`. Also extracts interfaces for `Store`.
+
+### ADDED
+
+- `StoreBehaviour`
+- `StoreBehaviour` examples
+
+### CHANGED
+
+- Extract `IStore`, `IActionDispatcher`, and `IStateContainer` from `Store`.
+- Simplify, improve the example `Copy` behavior for example classes.
+
+### FIXED
+
+- Date format in change log is wrong 🤦‍♂️
+
 ---
 
 ## Version 2.0.0
 
-*Merged to master on 2020-25-2*
+*Merged to master on 2020-02-25*
 
 Moves `Store` and `IAction` to the `Store` namespace. Though small, this is a breaking change, thus v2.0.0.
 
@@ -26,7 +46,7 @@ Moves `Store` and `IAction` to the `Store` namespace. Though small, this is a br
 
 ## Version 1.0.0
 
-*Merged to master on 2020-23-2*
+*Merged to master on 2020-02-23*
 
 This is the first functional version of AReSSO.
 
@@ -45,6 +65,6 @@ and get an observable version of the store that updates when the store changes.
 
 ## Version 0.0.0
 
-*Merged to master on 2020-20-2*
+*Merged to master on 2020-02-20*
 
 Initial version.

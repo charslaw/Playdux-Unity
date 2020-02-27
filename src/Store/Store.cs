@@ -9,7 +9,7 @@ namespace AReSSO.Store
     /// Includes capability to dispatch actions to the store, get the current state, get the current state narrowed by
     /// a selector, and get an IObservable to the "selected" state.
     /// </summary>
-    public class Store<TRootState>
+    public class Store<TRootState> : IStore<TRootState>
     {
         /// <summary>The current state within the store.</summary>
         public TRootState State { get; private set; }

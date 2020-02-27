@@ -10,14 +10,17 @@ namespace AReSSO.Test
         {
             N = n;
         }
-        private SimpleTestState(SimpleTestState old, PropertyChange<int> newN)
+        
+        public SimpleTestState Copy(PropertyChange<int> n = default)
         {
-            N = newN.Else(old.N);
+            if (n.Changed)
+            {
+                return new SimpleTestState(n.Else(N));
+            }
+
+            return this;
         }
-        
-        public SimpleTestState Copy(PropertyChange<int> n = default) =>
-            new SimpleTestState(this, n);
-        
+
         protected bool Equals(SimpleTestState other)
         {
             return N == other.N;
