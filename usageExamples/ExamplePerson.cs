@@ -29,7 +29,7 @@ namespace AReSSO.UsageExamples
         }
         
         /// <summary>
-        /// The copy function is a pure function that returns a copy of a state.
+        /// The copy function is a pure function that returns a shallow copy of an object.
         /// Note the usage of optional arguments. PropertyDelta defaults to Changed = false, so a property will only
         /// change for properties that are specified.
         ///
@@ -45,12 +45,7 @@ namespace AReSSO.UsageExamples
             PropertyChange<DateTime> birthday = default,
             PropertyChange<IReadOnlyList<ExampleSong>> favoriteSongs = default)
         {
-            if (name.Changed || birthday.Changed || favoriteSongs.Changed)
-            {
-                return new ExamplePerson(name.Else(Name), birthday.Else(Birthday), favoriteSongs.Else(FavoriteSongs));
-            }
-
-            return this;
+            return new ExamplePerson(name.Else(Name), birthday.Else(Birthday), favoriteSongs.Else(FavoriteSongs));
         }
 
         #region Equals Implementations
