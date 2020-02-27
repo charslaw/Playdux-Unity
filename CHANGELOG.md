@@ -2,6 +2,19 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## Version 2.1.1
+
+*Merged to master on 2020-02-26*
+
+### FIXED
+
+- Update package.json version.
+- Update package.json with UniRx dependency.
+
+---
+
 ## Version 2.1.0
 
 *Merged to master on 2020-02-26*
