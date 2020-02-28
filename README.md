@@ -1,6 +1,6 @@
 # ![AReSSO Logo](aresso_icon.svg) AReSSO
 
-**A**ction - **Re**ducer - **S**tore - **S**elector - **O**bserver
+**A**ction > **Re**ducer > **S**tore > **S**elector > **O**bserver
 
 AReSSO is a unidirectional state container (a la Redux) intended for use in Unity 3D. It is definitely WIP at the moment, however the basic Redux-like functionality is there.
 
