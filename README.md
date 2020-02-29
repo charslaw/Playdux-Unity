@@ -10,6 +10,8 @@ AReSSO depends on UniRx by [neuecc](https://github.com/neuecc) (<https://github.
 
 ## Usage
 
+For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/AReSSO-Example-Projects).
+
 The `Store` class is the center of AReSSO. It currently has the following functionality:
 
 ### Creation
@@ -60,6 +62,5 @@ This example uses reactive extensions (UniRx) to subscribe to the resulting IObs
 ## Future Feature Additions
 
 - Add useful example projects. These will likely be in a different repo. (issue #4)
-- Add a MonoBehaviour wrapper for Store so that the store can be injected into MonoBehaviour components that depend on it. (issue #6).
 - Add SideEffectors. SideEffectors are intended to be AReSSO's corollary to Redux's Middlewares or ngrx's Effects. They react to actions to accomplish side effects, whereas reducers cannot accomplish side effects. (issue #3)
 - AReSSO devtools. I want to add Redux-like devtools in the Unity Editor to allow for time-travel debugging, etc. (issue #5)
