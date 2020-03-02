@@ -39,9 +39,10 @@ namespace AReSSO.Store
         public void Dispatch(IAction action)
         {
             TRootState newState;
+            var dispatchedAction = new DispatchedAction(action);
             lock (reduceLock)
             {
-                newState = rootReducer(State, action);
+                newState = rootReducer(State, dispatchedAction.Action);
             }
 
             if (newState.Equals(State)) return;
