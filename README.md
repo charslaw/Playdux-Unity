@@ -1,6 +1,6 @@
 # ![AReSSO Logo](aresso_icon.svg) AReSSO
 
-**A**ction - **Re**ducer - **S**tore - **S**elector - **O**bserver
+**A**ction > **Re**ducer > **S**tore > **S**elector > **O**bserver
 
 AReSSO is a unidirectional state container (a la Redux) intended for use in Unity 3D. It is definitely WIP at the moment, however the basic Redux-like functionality is there.
 
@@ -9,6 +9,8 @@ AReSSO is a unidirectional state container (a la Redux) intended for use in Unit
 AReSSO depends on UniRx by [neuecc](https://github.com/neuecc) (<https://github.com/neuecc/UniRx>). I recommend using the UPM-compatible fork by [starikcetin](https://github.com/starikcetin) (<https://github.com/starikcetin/UniRx>).
 
 ## Usage
+
+For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/AReSSO-Example-Projects).
 
 The `Store` class is the center of AReSSO. It currently has the following functionality:
 
@@ -60,6 +62,5 @@ This example uses reactive extensions (UniRx) to subscribe to the resulting IObs
 ## Future Feature Additions
 
 - Add useful example projects. These will likely be in a different repo. (issue #4)
-- Add a MonoBehaviour wrapper for Store so that the store can be injected into MonoBehaviour components that depend on it. (issue #6).
 - Add SideEffectors. SideEffectors are intended to be AReSSO's corollary to Redux's Middlewares or ngrx's Effects. They react to actions to accomplish side effects, whereas reducers cannot accomplish side effects. (issue #3)
 - AReSSO devtools. I want to add Redux-like devtools in the Unity Editor to allow for time-travel debugging, etc. (issue #5)

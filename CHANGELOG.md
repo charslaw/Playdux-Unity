@@ -4,6 +4,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 2.1.2
+
+*Merged to master on 2020-03-01*
+
+Adds the missing aresso_icon meta file as not having it causes error messages in projects that import the AReSSO package.
+
+### FIXED
+
+- Add aresso_icon.svg.meta.
+
+---
+
 ## Version 2.1.1
 
 *Merged to master on 2020-02-26*
