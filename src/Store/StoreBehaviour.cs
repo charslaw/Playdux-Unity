@@ -11,7 +11,7 @@ namespace AReSSO.Store
     /// StoreBehaviour is abstract because you, the developer, must define a sublcass of it in order to initialize the
     /// store correctly.
     /// </remarks>
-    public abstract class StoreBehaviour<TRootState> : MonoBehaviour, IStore<TRootState>
+    public abstract class StoreBehaviour<TRootState> : MonoBehaviour, IStore<TRootState> where TRootState : class
     {
         public Store<TRootState> Store { get; private set; }
         

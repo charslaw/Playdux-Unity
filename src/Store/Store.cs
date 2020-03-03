@@ -9,26 +9,31 @@ namespace AReSSO.Store
     /// Includes capability to dispatch actions to the store, get the current state, get the current state narrowed by
     /// a selector, and get an IObservable to the "selected" state.
     /// </summary>
-    public class Store<TRootState> : IStore<TRootState>
+    public class Store<TRootState> : IStore<TRootState> where TRootState : class
     {
+        private TRootState state;
+
         /// <summary>The current state within the store.</summary>
-        public TRootState State { get; private set; }
+        public TRootState State => state ?? throw new StoreNotInitializedException();
 
         // The reducer used when an action is dispatched to the store.
         private readonly Func<TRootState, IAction, TRootState> rootReducer;
+
         // Used to prevent multiple threads from concurrently modifying state via reducers.
         private readonly object reduceLock = new object();
-        
+
         // A list of observers paying attention to the state in this store
         private readonly List<IStoreObserver> observers = new List<IStoreObserver>();
+
         // Used to prevent multiple threads from concurrently adding to observers while notifying observers.
         private readonly object observersLock = new object();
 
         /// <summary>Create a new store with a given initial state and reducer</summary>
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
         {
-            State = initialState;
             this.rootReducer = rootReducer;
+            
+            Dispatch(new InitializeAction<TRootState>(initialState));
         }
 
         /// <summary>
@@ -40,14 +45,27 @@ namespace AReSSO.Store
         {
             TRootState newState;
             var dispatchedAction = new DispatchedAction(action);
+
+            switch (action)
+            {
+                case InitializeAction<TRootState> initializer:
+                    state = initializer.InitialState;
+                    break;
+                case InitializeAction<IAction> mismatchedInitializer:
+                    throw new InitialStateTypeMismatchException(
+                        mismatchedInitializer.InitialState.GetType(),
+                        State.GetType()
+                    );
+            }
+
             lock (reduceLock)
             {
                 newState = rootReducer(State, dispatchedAction.Action);
             }
 
             if (newState.Equals(State)) return;
-            
-            State = newState;
+
+            state = newState;
             foreach (var observer in observers)
             {
                 observer.Notify(State);
@@ -72,7 +90,7 @@ namespace AReSSO.Store
         {
             void Notify(TRootState state);
         }
-        
+
         /// <summary>Represents a subscription to the store state.</summary>
         private class StoreObserver<TSelectedState> : IStoreObserver
         {
