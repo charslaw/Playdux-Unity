@@ -11,15 +11,7 @@ namespace AReSSO.Test
             N = n;
         }
         
-        public SimpleTestState Copy(PropertyChange<int> n = default)
-        {
-            if (n.Changed)
-            {
-                return new SimpleTestState(n.Else(N));
-            }
-
-            return this;
-        }
+        public SimpleTestState Copy(PropertyChange<int> n = default) => new SimpleTestState(n.Else(N));
 
         protected bool Equals(SimpleTestState other)
         {

@@ -13,7 +13,7 @@ namespace AReSSO.Test
         public void GetStateOnNewStoreReturnsInitialState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
+            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             Assert.AreEqual(init, store.State);
         }
@@ -22,7 +22,7 @@ namespace AReSSO.Test
         public void StateNotChangedAfterDispatchWhenReducerDoesNotChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
+            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
             
             store.Dispatch(new EmptyAction());
             
@@ -33,7 +33,7 @@ namespace AReSSO.Test
         public void StateChangedAfterDispatchWhenReducerDoesChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(243));
+            var store = new Store<SimpleTestState>(init, TestReducers.GenerateSetNSimpleTestStateReducer(243));
             
             store.Dispatch(new EmptyAction());
             
@@ -44,7 +44,7 @@ namespace AReSSO.Test
         public void ObserverNotNotifiedOnDispatchWhenReducerDoesNotChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
+            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             int notified = 0;
             store.ObservableFor(state => state).Subscribe(_ => notified++);
@@ -58,7 +58,7 @@ namespace AReSSO.Test
         public void ObserverNotifiedOnDispatchWhenReducerDoesChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(567412));
+            var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
 
             int notified = 0;
             store.ObservableFor(state => state).Subscribe(_ => notified++);
@@ -72,7 +72,7 @@ namespace AReSSO.Test
         public void ErrorInOneObserverDoesNotBreakOtherObservers()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(state.N + 1));
+            var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
 
             int notified = 0;
             int errorSeen = 0;
@@ -97,7 +97,7 @@ namespace AReSSO.Test
         public void ObserverNotNotifiedForChangeOutsideOfSelector()
         {
             Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
             
             int notified = 0;
             store.ObservableFor(state => state.X).Subscribe(_ => notified++);
@@ -111,13 +111,15 @@ namespace AReSSO.Test
         public void ObserverNotifiedForChangeInsideOfSelector()
         {
             Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
             
             int notified = 0;
-            store.ObservableFor(state => state.Y).Subscribe(_ => notified++);
+            store.ObservableFor(state => state.Y)
+                .Subscribe(_ => notified++);
             
             store.Dispatch(new EmptyAction());
 
+            // One for Initialize, one for Empty action.
             Assert.AreEqual(1, notified);
         }
 
@@ -125,12 +127,25 @@ namespace AReSSO.Test
         public void CanUnsubscribeWithoutBreakingEverything()
         {
             Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
             
             var disposable = store.ObservableFor(state => state.Y).Subscribe(_ => { });
             disposable.Dispose();
             
             Assert.DoesNotThrow(() => store.Dispatch(new EmptyAction()));
         }
+    }
+
+    internal static class TestReducers
+    {
+        public static Func<SimpleTestState, IAction, SimpleTestState> GenerateSetNSimpleTestStateReducer(int value) =>
+            (SimpleTestState state, IAction __) => state.Copy(value);
+        
+        public static SimpleTestState IdentitySimpleTestStateReducer(SimpleTestState state, IAction _) => state;
+
+        public static SimpleTestState IncrementNSimpleTestStateReducer(SimpleTestState state, IAction _) =>
+            state.Copy(state.N + 71);
+
+        public static Point IncrementYPointReducer(Point state, IAction _) => state.Copy(y: state.Y + 1);
     }
 }

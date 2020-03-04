@@ -6,7 +6,7 @@ namespace AReSSO.CopyUtils
     public struct PropertyChange<T>
     {
         /// <summary>Whether or not the value this PropertyChange represents has actually been changed.</summary>
-        public bool Changed { get; }
+        private bool Changed { get; }
         /// <summary>The new value.</summary>
         private T Value { get; }
 

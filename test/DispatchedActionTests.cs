@@ -15,7 +15,7 @@ namespace AReSSO.Test
             var now = DateTime.Now;
             var da = new DispatchedAction(new TestAction());
             
-            Assert.That(da.DispatchTime, Is.EqualTo(now).Within(TimeSpan.FromMilliseconds(5)));
+            Assert.That(da.DispatchTime, Is.EqualTo(now).Within(TimeSpan.FromMilliseconds(10)));
         }
 
         [Test]

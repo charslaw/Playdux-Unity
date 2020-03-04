@@ -16,15 +16,8 @@ namespace AReSSO.Test
 
         public Point Copy(
             PropertyChange<float> x = default,
-            PropertyChange<float> y = default)
-        {
-            if (x.Changed || y.Changed)
-            {
-                return new Point(x.Else(X), y.Else(Y));
-            }
-
-            return this;
-        }
+            PropertyChange<float> y = default) =>
+            new Point(x.Else(X), y.Else(Y));
 
         public bool Equals(Point other)
         {
