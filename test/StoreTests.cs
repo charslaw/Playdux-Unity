@@ -94,6 +94,30 @@ namespace AReSSO.Test
         }
 
         [Test]
+        public void ErrorInSelectorDoesNotBreakOtherObservers()
+        {
+            SimpleTestState init = new SimpleTestState(42);
+            var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
+
+            int notified1 = 0;
+            int errors1 = 0;
+            store.ObservableFor(state => state).Subscribe(
+                state => notified1++,
+                error => errors1++);
+            store.ObservableFor(TestSelectors.ErrorSimpleTestStateSelector).Subscribe(
+                    _ => { },
+                    _ => { }
+                );
+
+            store.Dispatch(new EmptyAction());
+            store.Dispatch(new EmptyAction());
+            
+
+            Assert.AreEqual(0, errors1, $"1 Saw {errors1} errors");
+            Assert.AreEqual(2, notified1, $"1 Saw {notified1} notifications");
+        }
+
+        [Test]
         public void ObserverNotNotifiedForChangeOutsideOfSelector()
         {
             Point init = new Point(4, 2);
@@ -136,10 +160,15 @@ namespace AReSSO.Test
         }
     }
 
+    internal static class TestSelectors
+    {
+        public static SimpleTestState ErrorSimpleTestStateSelector(SimpleTestState state) => throw new Exception();
+    }
+
     internal static class TestReducers
     {
         public static Func<SimpleTestState, IAction, SimpleTestState> GenerateSetNSimpleTestStateReducer(int value) =>
-            (SimpleTestState state, IAction __) => state.Copy(value);
+            (state, _) => state.Copy(value);
         
         public static SimpleTestState IdentitySimpleTestStateReducer(SimpleTestState state, IAction _) => state;
 

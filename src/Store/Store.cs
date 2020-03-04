@@ -19,20 +19,20 @@ namespace AReSSO.Store
         // The reducer used when an action is dispatched to the store.
         private readonly Func<TRootState, IAction, TRootState> rootReducer;
 
-        // Used to prevent multiple threads from concurrently modifying state via reducers.
-        private readonly object reduceLock = new object();
+        // Used to prevent multiple threads from concurrently dispatching actions which modify state.
+        private readonly object stateLock = new object();
 
-        // A list of observers paying attention to the state in this store
-        private readonly List<IStoreObserver> observers = new List<IStoreObserver>();
+        // Observable source for State.ObservableFor
+        private readonly BehaviorSubject<TRootState> subject = new BehaviorSubject<TRootState>(null);
 
-        // Used to prevent multiple threads from concurrently adding to observers while notifying observers.
-        private readonly object observersLock = new object();
+        // Used to prevent multiple threads from concurrently onNext-ing into the subject and subscribing to the subject.
+        private readonly object subjectLock = new object();
 
         /// <summary>Create a new store with a given initial state and reducer</summary>
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
         {
             this.rootReducer = rootReducer;
-            
+
             Dispatch(new InitializeAction<TRootState>(initialState));
         }
 
@@ -43,32 +43,28 @@ namespace AReSSO.Store
         /// in FIFO order.</remarks>
         public void Dispatch(IAction action)
         {
-            TRootState newState;
             var dispatchedAction = new DispatchedAction(action);
 
-            switch (action)
+            lock (stateLock)
             {
-                case InitializeAction<TRootState> initializer:
-                    state = initializer.InitialState;
-                    break;
-                case InitializeAction<IAction> mismatchedInitializer:
-                    throw new InitialStateTypeMismatchException(
-                        mismatchedInitializer.InitialState.GetType(),
-                        State.GetType()
-                    );
+                switch (action)
+                {
+                    case InitializeAction<TRootState> initializer:
+                        state = initializer.InitialState;
+                        break;
+                    case InitializeAction<IAction> mismatchedInitializer:
+                        throw new InitialStateTypeMismatchException(
+                            mismatchedInitializer.InitialState.GetType(),
+                            state.GetType()
+                        );
+                }
+
+                state = rootReducer(state, dispatchedAction.Action);
             }
 
-            lock (reduceLock)
+            lock (subjectLock)
             {
-                newState = rootReducer(State, dispatchedAction.Action);
-            }
-
-            if (newState.Equals(State)) return;
-
-            state = newState;
-            foreach (var observer in observers)
-            {
-                observer.Notify(State);
+                subject.OnNext(state);
             }
         }
 
@@ -81,31 +77,9 @@ namespace AReSSO.Store
             Func<TRootState, TSelectedState> selector,
             bool notifyImmediately = false)
         {
-            var observer = new StoreObserver<TSelectedState>(selector, State);
-            observers.Add(observer);
-            return observer.Subject.DistinctUntilChanged().Skip(notifyImmediately ? 0 : 1);
-        }
-
-        private interface IStoreObserver
-        {
-            void Notify(TRootState state);
-        }
-
-        /// <summary>Represents a subscription to the store state.</summary>
-        private class StoreObserver<TSelectedState> : IStoreObserver
-        {
-            private readonly Func<TRootState, TSelectedState> selector;
-            public readonly BehaviorSubject<TSelectedState> Subject;
-
-            public StoreObserver(Func<TRootState, TSelectedState> selector, TRootState initial)
+            lock (subjectLock)
             {
-                this.selector = selector;
-                Subject = new BehaviorSubject<TSelectedState>(this.selector(initial));
-            }
-
-            public void Notify(TRootState state)
-            {
-                Subject.OnNext(selector(state));
+                return subject.Select(selector).DistinctUntilChanged().Skip(notifyImmediately ? 0 : 1);
             }
         }
     }
