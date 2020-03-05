@@ -10,7 +10,7 @@ AReSSO depends on UniRx by [neuecc](https://github.com/neuecc) (<https://github.
 
 ## Usage
 
-For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/AReSSO-Example-Projects).
+**For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/AReSSO-Example-Projects).**
 
 The `Store` class is the center of AReSSO. It currently has the following functionality:
 
