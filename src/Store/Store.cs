@@ -11,10 +11,8 @@ namespace AReSSO.Store
     /// </summary>
     public class Store<TRootState> : IStore<TRootState> where TRootState : class
     {
-        private TRootState state;
-
         /// <summary>The current state within the store.</summary>
-        public TRootState State => state ?? throw new StoreNotInitializedException();
+        public TRootState State { get; private set; }
 
         // The reducer used when an action is dispatched to the store.
         private readonly Func<TRootState, IAction, TRootState> rootReducer;
@@ -50,21 +48,21 @@ namespace AReSSO.Store
                 switch (action)
                 {
                     case InitializeAction<TRootState> initializer:
-                        state = initializer.InitialState;
+                        State = initializer.InitialState;
                         break;
                     case InitializeAction<IAction> mismatchedInitializer:
                         throw new InitialStateTypeMismatchException(
                             mismatchedInitializer.InitialState.GetType(),
-                            state.GetType()
+                            State.GetType()
                         );
                 }
 
-                state = rootReducer(state, dispatchedAction.Action);
+                State = rootReducer(State, dispatchedAction.Action);
             }
 
             lock (subjectLock)
             {
-                subject.OnNext(state);
+                subject.OnNext(State);
             }
         }
 

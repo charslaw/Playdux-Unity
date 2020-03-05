@@ -3,6 +3,38 @@ using AReSSO.CopyUtils;
 
 namespace AReSSO.Test
 {
+    public class SimpleTestState : IEquatable<SimpleTestState>
+    {
+        public int N { get; }
+
+        public SimpleTestState(int n)
+        {
+            N = n;
+        }
+        
+        public SimpleTestState Copy(PropertyChange<int> n = default) => new SimpleTestState(n.Else(N));
+
+        public bool Equals(SimpleTestState other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return N == other.N;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((SimpleTestState) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return N;
+        }
+    }
+    
     public class Point : IEquatable<Point>
     {
         public float X { get; }
