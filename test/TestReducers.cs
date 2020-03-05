@@ -13,5 +13,7 @@ namespace AReSSO.Test
             state.Copy(state.N + 71);
 
         public static Point IncrementYPointReducer(Point state, IAction _) => state.Copy(y: state.Y + 1);
+
+        public static Point IdentityPointReducer(Point state, IAction _) => state;
     }
 }

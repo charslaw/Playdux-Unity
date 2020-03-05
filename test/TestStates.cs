@@ -3,7 +3,7 @@ using AReSSO.CopyUtils;
 
 namespace AReSSO.Test
 {
-    public class SimpleTestState : IEquatable<SimpleTestState>
+    internal class SimpleTestState : IEquatable<SimpleTestState>
     {
         public int N { get; }
 
@@ -35,7 +35,7 @@ namespace AReSSO.Test
         }
     }
     
-    public class Point : IEquatable<Point>
+    internal class Point : IEquatable<Point>
     {
         public float X { get; }
         public float Y { get; }

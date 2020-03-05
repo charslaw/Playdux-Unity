@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UniRx;
 
 namespace AReSSO.Store
@@ -42,19 +41,23 @@ namespace AReSSO.Store
         public void Dispatch(IAction action)
         {
             var dispatchedAction = new DispatchedAction(action);
-
+            var initializeStateType = InitializeHelper.InitializeActionStateType(action);
+            
             lock (stateLock)
             {
-                switch (action)
+                if (initializeStateType != null)
                 {
-                    case InitializeAction<TRootState> initializer:
-                        State = initializer.InitialState;
-                        break;
-                    case InitializeAction<IAction> mismatchedInitializer:
-                        throw new InitialStateTypeMismatchException(
-                            mismatchedInitializer.InitialState.GetType(),
-                            State.GetType()
+                    if (initializeStateType == typeof(TRootState))
+                    {
+                        State = (action as InitializeAction<TRootState>)?.InitialState;
+                    }
+                    else
+                    {
+                        throw new InitializeTypeMismatchException(
+                            initializeStateType,
+                            typeof(TRootState)
                         );
+                    }
                 }
 
                 State = rootReducer(State, dispatchedAction.Action);
