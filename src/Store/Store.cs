@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UniRx;
 
 namespace AReSSO.Store
@@ -20,10 +22,10 @@ namespace AReSSO.Store
         private readonly object stateLock = new object();
 
         // Observable source for State.ObservableFor
-        private readonly BehaviorSubject<TRootState> subject = new BehaviorSubject<TRootState>(null);
+        private readonly Notifier notifier = new Notifier();
 
         // Used to prevent multiple threads from concurrently onNext-ing into the subject and subscribing to the subject.
-        private readonly object subjectLock = new object();
+        private readonly object notifyLock = new object();
 
         /// <summary>Create a new store with a given initial state and reducer</summary>
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
@@ -42,31 +44,31 @@ namespace AReSSO.Store
         {
             var dispatchedAction = new DispatchedAction(action);
             var initializeStateType = InitializeHelper.InitializeActionStateType(action);
-            
-            lock (stateLock)
+
+            if (initializeStateType != null)
             {
-                if (initializeStateType != null)
+                if (initializeStateType == typeof(TRootState))
                 {
-                    if (initializeStateType == typeof(TRootState))
+                    lock (stateLock)
                     {
                         State = (action as InitializeAction<TRootState>)?.InitialState;
                     }
-                    else
-                    {
-                        throw new InitializeTypeMismatchException(
-                            initializeStateType,
-                            typeof(TRootState)
-                        );
-                    }
                 }
+                else
+                {
+                    throw new InitializeTypeMismatchException(
+                        initializeStateType,
+                        typeof(TRootState)
+                    );
+                }
+            }
 
+            lock (stateLock)
+            {
                 State = rootReducer(State, dispatchedAction.Action);
             }
 
-            lock (subjectLock)
-            {
-                subject.OnNext(State);
-            }
+            notifier.OnNext(State);
         }
 
         /// <summary>Returns the current state filtered by the given selector.</summary>
@@ -76,11 +78,47 @@ namespace AReSSO.Store
         /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
         public IObservable<TSelectedState> ObservableFor<TSelectedState>(
             Func<TRootState, TSelectedState> selector,
-            bool notifyImmediately = false)
+            bool notifyImmediately = false
+        ) => Observable.CreateSafe<TRootState>(observer => notifier.AddConsumer(observer))
+            .StartWith(State)
+            .Select(selector)
+            .DistinctUntilChanged()
+            .Skip(notifyImmediately ? 0 : 1);
+
+        private class Notifier : IObserver<TRootState>
         {
-            lock (subjectLock)
+            private readonly object @lock = new object();
+            private readonly List<IObserver<TRootState>> consumers = new List<IObserver<TRootState>>();
+
+            public IDisposable AddConsumer(IObserver<TRootState> consumer)
             {
-                return subject.Select(selector).DistinctUntilChanged().Skip(notifyImmediately ? 0 : 1);
+                lock (@lock)
+                {
+                    consumers.Add(consumer);
+                }
+
+                return Disposable.Create(disposeAction: () => RemoveConsumer(consumer));
+            }
+
+            private void RemoveConsumer(IObserver<TRootState> consumer)
+            {
+                lock (@lock)
+                {
+                    consumers.Remove(consumer);
+                }
+            }
+
+            public void OnCompleted() => EventForEachConsumer(consumer => consumer.OnCompleted());
+            public void OnError(Exception error) => EventForEachConsumer(consumer => consumer.OnError(error));
+            public void OnNext(TRootState value) => EventForEachConsumer(consumer => consumer.OnNext(value));
+
+            private void EventForEachConsumer(Action<IObserver<TRootState>> action)
+            {
+                lock (@lock)
+                {
+                    // Create a copy of the list to prevent concurrent modification and notification of consumers
+                    consumers.ToList().ForEach(action);
+                }
             }
         }
     }

@@ -7,8 +7,10 @@ namespace AReSSO.Test
 {
     public class StoreErrorHandlingTests
     {
+        private static SimpleTestState MethodThatThrows(SimpleTestState _) => throw new Exception();
+
         [Test]
-        public void ErrorInOneObserverDoesNotBreakOtherObservers()
+        public void ErrorInSubscribeDoesNotBreakOtherObservers()
         {
             SimpleTestState init = new SimpleTestState(42);
             var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
@@ -27,6 +29,32 @@ namespace AReSSO.Test
             try { store.Dispatch(new EmptyAction()); }
             catch { /* ignored */ }
             
+
+            Assert.AreEqual(0, errorSeen, $"Saw {errorSeen} errors");
+            Assert.AreEqual(2, notified, $"Saw {notified} notifications");
+        }
+        
+        [Test]
+        public void ErrorInStreamDoesNotBreakOtherObservers()
+        {
+            SimpleTestState init = new SimpleTestState(42);
+            var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
+            
+            int notified = 0;
+            int errorSeen = 0;
+            store.ObservableFor(state => state)
+                .Subscribe(
+                    onNext: state => notified++,
+                    onError: error => errorSeen++);
+            store.ObservableFor(state => state)
+                .Select(MethodThatThrows)
+                .Subscribe(
+                    onNext: _ => {},
+                    onError: _ => {}
+                );
+
+            store.Dispatch(new EmptyAction());
+            store.Dispatch(new EmptyAction());
 
             Assert.AreEqual(0, errorSeen, $"Saw {errorSeen} errors");
             Assert.AreEqual(2, notified, $"Saw {notified} notifications");

@@ -1,4 +1,4 @@
 namespace AReSSO.Test
 {
-    internal class EmptyAction : IAction {}
+    internal class EmptyAction : IAction { }
 }

@@ -33,6 +33,8 @@ namespace AReSSO.Test
         {
             return N;
         }
+
+        public override string ToString() => $"[ SimpleTestState {{N = {N}}} ]";
     }
     
     internal class Point : IEquatable<Point>
@@ -73,5 +75,7 @@ namespace AReSSO.Test
                 return (X.GetHashCode() * 397) ^ Y.GetHashCode();
             }
         }
+        
+        public override string ToString() => $"[ Point {{X = {X}, Y = {Y}}} ]";
     }
 }
