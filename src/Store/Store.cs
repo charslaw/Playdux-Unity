@@ -23,9 +23,6 @@ namespace Playdux.src.Store
 
         private readonly BehaviorSubject<TRootState> stateStream;
 
-        // Used to prevent multiple threads from concurrently onNext-ing into the subject and subscribing to the subject.
-        private readonly object notifyLock = new object();
-
         /// <summary>Create a new store with a given initial state and reducer</summary>
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
         {
