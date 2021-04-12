@@ -1,4 +1,6 @@
+using AReSSO.Store;
+
 namespace AReSSO.Test
 {
-    internal class EmptyAction : IAction { }
+    internal record EmptyAction : IAction;
 }

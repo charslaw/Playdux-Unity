@@ -26,19 +26,16 @@ namespace AReSSO.Store
         /// initialize your store with initial state, set up reducers, etc.</summary>
         protected abstract Store<TRootState> InitializeStore();
 
-        /// <see cref="IStateContainer{TRootState}.State"/>
+        /// <inheritdoc cref="IStateContainer{TRootState}.State"/>
         public TRootState State => Store.State;
 
-        /// <see cref="IActionDispatcher.Dispatch"/>
+        /// <inheritdoc cref="IActionDispatcher.Dispatch"/>
         public void Dispatch(IAction action) => Store.Dispatch(action);
 
-        /// <see cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
-        public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) =>
-            Store.Select(selector);
+        /// <inheritdoc cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
+        public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => Store.Select(selector);
 
-        /// <see cref="IStateContainer{TRootState}.ObservableFor{TSelectedState}"/>
-        public IObservable<TSelectedState> ObservableFor<TSelectedState>(
-            Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
-            Store.ObservableFor(selector, notifyImmediately);
+        /// <inheritdoc cref="IStateContainer{TRootState}.ObservableFor{TSelectedState}"/>
+        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) => Store.ObservableFor(selector, notifyImmediately);
     }
 }

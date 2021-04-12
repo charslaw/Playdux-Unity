@@ -43,28 +43,13 @@ namespace AReSSO.Store
         public void Dispatch(IAction action)
         {
             var dispatchedAction = new DispatchedAction(action);
-            var initializeStateType = InitializeHelper.InitializeActionStateType(action);
 
-            if (initializeStateType != null)
-            {
-                if (initializeStateType == typeof(TRootState))
-                {
-                    lock (stateLock)
-                    {
-                        State = (action as InitializeAction<TRootState>)?.InitialState;
-                    }
-                }
-                else
-                {
-                    throw new InitializeTypeMismatchException(
-                        initializeStateType,
-                        typeof(TRootState)
-                    );
-                }
-            }
+            var actionAsInitializeAction = IsInitializeAction(action);
 
             lock (stateLock)
             {
+                if (actionAsInitializeAction is not null) { State = (action as InitializeAction<TRootState>)?.InitialState; }
+
                 State = rootReducer(State, dispatchedAction.Action);
             }
 
@@ -76,14 +61,23 @@ namespace AReSSO.Store
 
         /// <summary>Produces an IObservable looking at the state specified by the given selector.</summary>
         /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
-        public IObservable<TSelectedState> ObservableFor<TSelectedState>(
-            Func<TRootState, TSelectedState> selector,
-            bool notifyImmediately = false
-        ) => Observable.CreateSafe<TRootState>(observer => notifier.AddConsumer(observer))
-            .StartWith(State)
-            .Select(selector)
-            .DistinctUntilChanged()
-            .Skip(notifyImmediately ? 0 : 1);
+        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
+            Observable.CreateSafe<TRootState>(observer => notifier.AddConsumer(observer))
+                .StartWith(State)
+                .Select(selector)
+                .DistinctUntilChanged()
+                .Skip(notifyImmediately ? 0 : 1);
+
+        private static InitializeAction<TRootState> IsInitializeAction(IAction action)
+        {
+            var actionType = action.GetType();
+            var isInitializeAction = actionType.IsGenericType && actionType.GetGenericTypeDefinition() == typeof(InitializeAction<>);
+            var isInitializeActionCorrectType = isInitializeAction && action is InitializeAction<TRootState>;
+
+            if (!isInitializeAction) return null;
+            if (isInitializeActionCorrectType) return (InitializeAction<TRootState>) action;
+            throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState));
+        }
 
         private class Notifier : IObserver<TRootState>
         {
@@ -92,20 +86,14 @@ namespace AReSSO.Store
 
             public IDisposable AddConsumer(IObserver<TRootState> consumer)
             {
-                lock (@lock)
-                {
-                    consumers.Add(consumer);
-                }
+                lock (@lock) { consumers.Add(consumer); }
 
                 return Disposable.Create(disposeAction: () => RemoveConsumer(consumer));
             }
 
             private void RemoveConsumer(IObserver<TRootState> consumer)
             {
-                lock (@lock)
-                {
-                    consumers.Remove(consumer);
-                }
+                lock (@lock) { consumers.Remove(consumer); }
             }
 
             public void OnCompleted() => EventForEachConsumer(consumer => consumer.OnCompleted());

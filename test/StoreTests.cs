@@ -46,7 +46,7 @@ namespace AReSSO.Test
             Point newState = new Point(10, 11);
             store.Dispatch(new InitializeAction<Point>(newState));
 
-            Assert.AreEqual(newState, store.State);
+            Assert.AreEqual(newState with {}, store.State);
         }
 
         [Test]

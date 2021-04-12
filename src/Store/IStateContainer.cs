@@ -12,8 +12,6 @@ namespace AReSSO.Store
 
         /// <summary>Produces an IObservable looking at the state specified by the given selector.</summary>
         /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
-        IObservable<TSelectedState> ObservableFor<TSelectedState>(
-            Func<TRootState, TSelectedState> selector,
-            bool notifyImmediately = false);
+        IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false);
     }
 }
