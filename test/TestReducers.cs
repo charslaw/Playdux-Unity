@@ -1,8 +1,8 @@
 #nullable enable
 using System;
-using AReSSO.Store;
+using Playdux.src.Store;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     internal static class TestReducers
     {

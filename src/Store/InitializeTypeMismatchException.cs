@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace AReSSO.Store
+namespace Playdux.src.Store
 {
     public class InitializeTypeMismatchException : Exception
     {

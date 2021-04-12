@@ -2,7 +2,7 @@
 using System;
 using System.Diagnostics;
 
-namespace AReSSO.Store
+namespace Playdux.src.Store
 {
     /// An IAction wrapped with some additional metadata for debugging purposes.
     public record DispatchedAction(IAction Action, DateTime DispatchTime, StackTrace DispatchStackTrace)

@@ -1,10 +1,10 @@
 #nullable enable
 using System;
 using System.Diagnostics;
-using AReSSO.Store;
 using NUnit.Framework;
+using Playdux.src.Store;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     public class DispatchedActionTests
     {

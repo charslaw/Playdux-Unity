@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     internal record SimpleTestState(int N);
 

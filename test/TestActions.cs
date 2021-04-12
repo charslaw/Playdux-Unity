@@ -1,7 +1,7 @@
 #nullable enable
-using AReSSO.Store;
+using Playdux.src.Store;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     internal record EmptyAction : IAction;
 }

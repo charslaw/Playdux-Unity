@@ -3,10 +3,10 @@
 using System;
 using UniRx;
 
-namespace AReSSO.Store
+namespace Playdux.src.Store
 {
     /// <summary>
-    /// An AReSSO state container. The core of AReSSO.
+    /// A Playdux state container. The core of Playdux.
     /// Includes capability to dispatch actions to the store, get the current state, get the current state narrowed by
     /// a selector, and get an IObservable to the "selected" state.
     /// </summary>

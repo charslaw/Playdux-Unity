@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     internal static class TestSelectors
     {

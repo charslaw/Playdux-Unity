@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 
-namespace AReSSO.Store
+namespace Playdux.src.Store
 {
     public interface IStateContainer<out TRootState>
     {

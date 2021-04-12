@@ -2,7 +2,7 @@
 using System;
 using UnityEngine;
 
-namespace AReSSO.Store
+namespace Playdux.src.Store
 {
     /// <summary>
     /// StoreBehaviour is a MonoBehaviour wrapper for Store. Its purpose is to provide a way for a Store to be injected

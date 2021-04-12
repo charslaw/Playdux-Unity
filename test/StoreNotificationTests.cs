@@ -1,9 +1,9 @@
 #nullable enable
-using AReSSO.Store;
 using NUnit.Framework;
+using Playdux.src.Store;
 using UniRx;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     public class StoreNotificationTests
     {
