@@ -72,5 +72,22 @@ namespace AReSSO.Test
 
             Assert.DoesNotThrow(() => store.Dispatch(new EmptyAction()));
         }
+        
+
+        [Test]
+        public void CanUnsubscribeWithoutBreakingOtherSubscribers()
+        {
+            Point init = new Point(4, 2);
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
+
+            var notified = 0;
+            var disposable = store.ObservableFor(state => state.Y).Subscribe(_ => { });
+            store.ObservableFor(state => state.Y).Subscribe(_ => notified++ );
+            disposable.Dispose();
+
+            store.Dispatch(new EmptyAction());
+
+            Assert.AreEqual(1, notified);
+        }
     }
 }
