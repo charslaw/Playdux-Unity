@@ -1,16 +1,16 @@
 {
-    "name": "dev.coleschultz.aresso",
-    "version": "2.1.2",
-    "displayName": "AReSSO - Redux for Unity",
-    "description": "Action - Reducer - Store - Selector - Observer\nAReSSO is a Redux-style state container intended for use in Unity.",
-    "unity": "2018.1",
-    "author": {
-        "name": "Cole Schultz",
-        "url": "https://coleschultz.dev"
-      },
-    "repository": "https://github.com/schultzcole/AReSSO.git",
-    "license": "MIT",
-    "dependencies": {
-      "com.neuecc.unirx": "7.1.0"
-    }
+  "name": "dev.coleschultz.playdux",
+  "version": "3.0.0",
+  "displayName": "Playdux - Redux for Unity",
+  "description": "Playdux is a Redux-style state container intended for use in Unity.",
+  "unity": "2021.2",
+  "author": {
+    "name": "Cole Schultz",
+    "url": "https://coleschultz.dev"
+  },
+  "repository": "https://github.com/schultzcole/Playdux.git",
+  "license": "MIT",
+  "dependencies": {
+    "com.neuecc.unirx": "7.1.0"
+  }
 }

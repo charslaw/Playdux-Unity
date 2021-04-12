@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 3.0.0
+
+*Merged to master on 2021-04-12*
+
+### ADDED
+
+- Add `InitializeAction`, which handles initializing or reinitializing a `Store`.
+
+### CHANGED
+
+- Rename project to "Playdux".
+- Updated to Unity 2021.2 for C#9 support.
+  - Use `record` whenever possible as opposed to `class`.
+  - Use `#nullable enable` in all files.
+
+---
+
 ## Version 2.1.2
 
 *Merged to master on 2020-03-01*
