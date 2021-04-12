@@ -1,4 +1,6 @@
-namespace AReSSO.Store
+#nullable enable
+
+namespace Playdux.src.Store
 {
     public interface IActionDispatcher
     {

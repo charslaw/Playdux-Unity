@@ -1,18 +1,17 @@
-# ![AReSSO Logo](aresso_icon.svg) AReSSO
+# ![Playdux Logo](playdux_icon.svg) Playdux
 
-**A**ction > **Re**ducer > **S**tore > **S**elector > **O**bserver
-
-AReSSO is a unidirectional state container (a la Redux) intended for use in Unity 3D. It is definitely WIP at the moment, however the basic Redux-like functionality is there.
+Playdux is a unidirectional state container (a la Redux) intended for use in Unity 3D.
+It is definitely WIP at the moment, however the basic Redux-like functionality is there.
 
 ## Dependencies
 
-AReSSO depends on UniRx by [neuecc](https://github.com/neuecc) (<https://github.com/neuecc/UniRx>). I recommend using the UPM-compatible fork by [starikcetin](https://github.com/starikcetin) (<https://github.com/starikcetin/UniRx>).
+Playdux depends on UniRx by [neuecc](https://github.com/neuecc) (<https://github.com/neuecc/UniRx>).
 
 ## Usage
 
-For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/AReSSO-Example-Projects).
+**For more extensive usage examples, visit [the example projects repo](https://github.com/schultzcole/Playdux-Example-Projects).**
 
-The `Store` class is the center of AReSSO. It currently has the following functionality:
+The `Store` class is the center of Playdux. It currently has the following functionality:
 
 ### Creation
 
@@ -62,5 +61,5 @@ This example uses reactive extensions (UniRx) to subscribe to the resulting IObs
 ## Future Feature Additions
 
 - Add useful example projects. These will likely be in a different repo. (issue #4)
-- Add SideEffectors. SideEffectors are intended to be AReSSO's corollary to Redux's Middlewares or ngrx's Effects. They react to actions to accomplish side effects, whereas reducers cannot accomplish side effects. (issue #3)
-- AReSSO devtools. I want to add Redux-like devtools in the Unity Editor to allow for time-travel debugging, etc. (issue #5)
+- Add SideEffectors. SideEffectors are intended to be Playdux's corollary to Redux's Middlewares or ngrx's Effects. They react to actions to accomplish side effects, whereas reducers cannot accomplish side effects. (issue #3)
+- Playdux devtools. I want to add Redux-like devtools in the Unity Editor to allow for time-travel debugging, etc. (issue #5)

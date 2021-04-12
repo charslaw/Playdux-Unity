@@ -1,19 +1,17 @@
-using System;
+#nullable enable
 using NUnit.Framework;
+using Playdux.src.Store;
 using UniRx;
-using AReSSO.Store;
 
-namespace AReSSO.Test
+namespace Playdux.test
 {
     public class StoreTests
     {
-        public class EmptyAction : IAction {}
-        
         [Test]
         public void GetStateOnNewStoreReturnsInitialState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
+            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             Assert.AreEqual(init, store.State);
         }
@@ -22,10 +20,10 @@ namespace AReSSO.Test
         public void StateNotChangedAfterDispatchWhenReducerDoesNotChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
-            
+            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
             store.Dispatch(new EmptyAction());
-            
+
             Assert.AreEqual(init, store.State);
         }
 
@@ -33,104 +31,63 @@ namespace AReSSO.Test
         public void StateChangedAfterDispatchWhenReducerDoesChangeState()
         {
             SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(243));
-            
+            var store = new Store<SimpleTestState>(init, TestReducers.GenerateSetNSimpleTestStateReducer(243));
+
             store.Dispatch(new EmptyAction());
-            
+
             Assert.AreEqual(243, store.State.N);
         }
 
         [Test]
-        public void ObserverNotNotifiedOnDispatchWhenReducerDoesNotChangeState()
+        public void InitializeActionSetsState()
         {
-            SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state);
+            Point init = new Point(0, 1);
+            var store = new Store<Point>(init, TestReducers.IdentityPointReducer);
 
-            int notified = 0;
-            store.ObservableFor(state => state).Subscribe(_ => notified++);
-            
-            store.Dispatch(new EmptyAction());
+            Point newState = new Point(10, 11);
+            store.Dispatch(new InitializeAction<Point>(newState));
 
-            Assert.AreEqual(0, notified);
+            Assert.AreEqual(newState with {}, store.State);
         }
 
         [Test]
-        public void ObserverNotifiedOnDispatchWhenReducerDoesChangeState()
+        public void InitializeActionWithWrongStateTypeThrows()
         {
-            SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(567412));
-
-            int notified = 0;
-            store.ObservableFor(state => state).Subscribe(_ => notified++);
+            Point init = new Point(default, default);
+            var store = new Store<Point>(init, TestReducers.IdentityPointReducer);
             
-            store.Dispatch(new EmptyAction());
-
-            Assert.AreEqual(1, notified);
-        }
-
-        [Test]
-        public void ErrorInOneObserverDoesNotBreakOtherObservers()
-        {
-            SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, (state, _) => state.Copy(state.N + 1));
-
-            int notified = 0;
-            int errorSeen = 0;
-            store.ObservableFor(state => state).Subscribe(
-                state => notified++,
-                error => errorSeen++);
-            store.ObservableFor(state => state).Subscribe(
-                state => throw new Exception(),
-                error => { });
-
-            try { store.Dispatch(new EmptyAction()); }
-            catch { /* ignored */ }
-            try { store.Dispatch(new EmptyAction()); }
-            catch { /* ignored */ }
-            
-
-            Assert.AreEqual(0, errorSeen, $"Saw {errorSeen} errors");
-            Assert.AreEqual(2, notified, $"Saw {notified} notifications");
-        }
-
-        [Test]
-        public void ObserverNotNotifiedForChangeOutsideOfSelector()
-        {
-            Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
-            
-            int notified = 0;
-            store.ObservableFor(state => state.X).Subscribe(_ => notified++);
-            
-            store.Dispatch(new EmptyAction());
-
-            Assert.AreEqual(0, notified);
-        }
-
-        [Test]
-        public void ObserverNotifiedForChangeInsideOfSelector()
-        {
-            Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
-            
-            int notified = 0;
-            store.ObservableFor(state => state.Y).Subscribe(_ => notified++);
-            
-            store.Dispatch(new EmptyAction());
-
-            Assert.AreEqual(1, notified);
+            Assert.Throws<InitializeTypeMismatchException>(
+                () => store.Dispatch(new InitializeAction<SimpleTestState>(new SimpleTestState(default)))
+            );
         }
 
         [Test]
         public void CanUnsubscribeWithoutBreakingEverything()
         {
             Point init = new Point(4, 2);
-            var store = new Store<Point>(init, (state, _) => state.Copy(y: 8947));
-            
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
+
             var disposable = store.ObservableFor(state => state.Y).Subscribe(_ => { });
             disposable.Dispose();
-            
+
             Assert.DoesNotThrow(() => store.Dispatch(new EmptyAction()));
+        }
+        
+
+        [Test]
+        public void CanUnsubscribeWithoutBreakingOtherSubscribers()
+        {
+            Point init = new Point(4, 2);
+            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
+
+            var notified = 0;
+            var disposable = store.ObservableFor(state => state.Y).Subscribe(_ => { });
+            store.ObservableFor(state => state.Y).Subscribe(_ => notified++ );
+            disposable.Dispose();
+
+            store.Dispatch(new EmptyAction());
+
+            Assert.AreEqual(1, notified);
         }
     }
 }
