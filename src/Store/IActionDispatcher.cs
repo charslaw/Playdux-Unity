@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace AReSSO.Store
 {
     public interface IActionDispatcher

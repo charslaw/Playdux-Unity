@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace AReSSO.Store
     /// </remarks>
     public abstract class StoreBehaviour<TRootState> : MonoBehaviour, IStore<TRootState> where TRootState : class
     {
-        public Store<TRootState> Store { get; private set; }
+        public Store<TRootState>? Store { get; private set; }
         
         /// <remarks>You if you implement your own awake on a subclass of StoreBehaviour, you *must*
         /// call base.Awake() to ensure that Store is initialized correctly.</remarks>
@@ -27,15 +28,15 @@ namespace AReSSO.Store
         protected abstract Store<TRootState> InitializeStore();
 
         /// <inheritdoc cref="IStateContainer{TRootState}.State"/>
-        public TRootState State => Store.State;
+        public TRootState State => Store!.State;
 
         /// <inheritdoc cref="IActionDispatcher.Dispatch"/>
-        public void Dispatch(IAction action) => Store.Dispatch(action);
+        public void Dispatch(IAction action) => Store!.Dispatch(action);
 
         /// <inheritdoc cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
-        public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => Store.Select(selector);
+        public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => Store!.Select(selector);
 
         /// <inheritdoc cref="IStateContainer{TRootState}.ObservableFor{TSelectedState}"/>
-        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) => Store.ObservableFor(selector, notifyImmediately);
+        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) => Store!.ObservableFor(selector, notifyImmediately);
     }
 }

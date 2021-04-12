@@ -1,3 +1,4 @@
+#nullable enable
 using AReSSO.Store;
 using NUnit.Framework;
 using UniRx;

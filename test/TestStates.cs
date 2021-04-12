@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace AReSSO.Test
 {
     internal record SimpleTestState(int N);
