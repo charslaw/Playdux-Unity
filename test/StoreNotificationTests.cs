@@ -2,67 +2,83 @@
 using NUnit.Framework;
 using Playdux.src.Store;
 using UniRx;
+using static Playdux.test.TestUtils.TestUtils;
 
 namespace Playdux.test
 {
     public class StoreNotificationTests
     {
+        private const int Delay = 1;
+        
+        private Store<SimpleTestState>? simpleStore;
+        private Store<Point>? pointStore;
+        
+        [TearDown]
+        public void Teardown()
+        {
+            simpleStore?.Dispose();
+            pointStore?.Dispose();
+        }
+        
         [Test]
         public void ObserverNotNotifiedOnDispatchWhenReducerDoesNotChangeState()
         {
-            SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+            SimpleTestState init = new(42);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             int notified = 0;
-            store.ObservableFor(state => state).Subscribe(_ => notified++);
+            simpleStore.ObservableFor(state => state).Subscribe(_ => notified++);
 
-            store.Dispatch(new EmptyAction());
+            simpleStore.Dispatch(new EmptyAction());
 
-            Assert.AreEqual(0, notified);
+            BlockingWait(Delay);
+            Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
         [Test]
         public void ObserverNotifiedOnDispatchWhenReducerDoesChangeState()
         {
-            SimpleTestState init = new SimpleTestState(42);
-            var store = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
+            SimpleTestState init = new(42);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IncrementNSimpleTestStateReducer);
 
             int notified = 0;
-            store.ObservableFor(state => state).Subscribe(_ => notified++);
+            simpleStore.ObservableFor(state => state).Subscribe(_ => notified++);
 
-            store.Dispatch(new EmptyAction());
+            simpleStore.Dispatch(new EmptyAction());
 
-            Assert.AreEqual(1, notified);
+            BlockingWait(Delay);
+            Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
 
 
         [Test]
         public void ObserverNotNotifiedForChangeOutsideOfSelector()
         {
-            Point init = new Point(4, 2);
-            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
+            Point init = new(4, 2);
+            pointStore = new Store<Point>(init, TestReducers.IncrementYPointReducer);
 
             int notified = 0;
-            store.ObservableFor(state => state.X).Subscribe(_ => notified++);
+            pointStore.ObservableFor(state => state.X).Subscribe(_ => notified++);
 
-            store.Dispatch(new EmptyAction());
+            pointStore.Dispatch(new EmptyAction());
 
-            Assert.AreEqual(0, notified);
+            BlockingWait(Delay);
+            Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
         [Test]
         public void ObserverNotifiedForChangeInsideOfSelector()
         {
-            Point init = new Point(4, 2);
-            var store = new Store<Point>(init, TestReducers.IncrementYPointReducer);
+            Point init = new(4, 2);
+            pointStore = new Store<Point>(init, TestReducers.IncrementYPointReducer);
 
             int notified = 0;
-            store.ObservableFor(state => state.Y)
-                .Subscribe(_ => notified++);
+            pointStore.ObservableFor(state => state.Y).Subscribe(_ => notified++);
 
-            store.Dispatch(new EmptyAction());
+            pointStore.Dispatch(new EmptyAction());
 
-            Assert.AreEqual(1, notified);
+            BlockingWait(Delay);
+            Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
     }
 }

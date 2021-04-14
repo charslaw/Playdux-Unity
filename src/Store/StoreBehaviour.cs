@@ -14,14 +14,13 @@ namespace Playdux.src.Store
     /// </remarks>
     public abstract class StoreBehaviour<TRootState> : MonoBehaviour, IStore<TRootState> where TRootState : class
     {
+        /// The <see cref="Store{TRootState}" /> that this <see cref="StoreBehaviour{TRootState}"/> wraps.
+        /// This is set in the base StoreBehaviour.Awake Unity event and should not be set elsewhere.
         public Store<TRootState>? Store { get; private set; }
-        
+
         /// <remarks>You if you implement your own awake on a subclass of StoreBehaviour, you *must*
         /// call base.Awake() to ensure that Store is initialized correctly.</remarks>
-        protected void Awake()
-        {
-            Store = InitializeStore();
-        }
+        protected void Awake() => Store = InitializeStore();
 
         /// <summary>InitializeStore must be overriden by subclasses of StoreBehaviour. This is where you can
         /// initialize your store with initial state, set up reducers, etc.</summary>
@@ -37,6 +36,7 @@ namespace Playdux.src.Store
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => Store!.Select(selector);
 
         /// <inheritdoc cref="IStateContainer{TRootState}.ObservableFor{TSelectedState}"/>
-        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) => Store!.ObservableFor(selector, notifyImmediately);
+        public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
+            Store!.ObservableFor(selector, notifyImmediately);
     }
 }
