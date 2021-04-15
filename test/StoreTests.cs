@@ -9,7 +9,7 @@ namespace Playdux.test
     public class StoreTests
     {
         private const int Delay = 1;
-        
+
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
 
@@ -19,14 +19,14 @@ namespace Playdux.test
             simpleStore?.Dispose();
             pointStore?.Dispose();
         }
-        
+
         [Test]
         public void GetStateOnNewStoreReturnsInitialState()
         {
             SimpleTestState init = new(42);
             simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
-            Assert.AreEqual(init with {}, simpleStore.State, "State does not match initial state.");
+            Assert.AreEqual(init with { }, simpleStore.State, "State does not match initial state.");
         }
 
         [Test]
@@ -63,7 +63,7 @@ namespace Playdux.test
             pointStore.Dispatch(new InitializeAction<Point>(newState));
 
             BlockingWait(Delay);
-            Assert.AreEqual(newState with {}, pointStore.State, "State does not match expected value from InitializeAction");
+            Assert.AreEqual(newState with { }, pointStore.State, "State does not match expected value from InitializeAction");
         }
 
         [Test]
@@ -71,7 +71,7 @@ namespace Playdux.test
         {
             Point init = new(default, default);
             pointStore = new Store<Point>(init, TestReducers.IdentityPointReducer);
-            
+
             Assert.Throws<InitializeTypeMismatchException>(
                 () => pointStore.Dispatch(new InitializeAction<SimpleTestState>(new SimpleTestState(default))),
                 "Did not throw InitializeTypeMismatchException when incorrect state type was given."
@@ -89,7 +89,7 @@ namespace Playdux.test
 
             Assert.DoesNotThrow(() => pointStore.Dispatch(new EmptyAction()), "Dispatching an action threw after consumer unsubscribed.");
         }
-        
+
 
         [Test]
         public void CanUnsubscribeWithoutBreakingOtherSubscribers()
@@ -99,7 +99,7 @@ namespace Playdux.test
 
             var notified = 0;
             var disposable = pointStore.ObservableFor(state => state.Y).Subscribe(_ => { });
-            pointStore.ObservableFor(state => state.Y).Subscribe(_ => notified++ );
+            pointStore.ObservableFor(state => state.Y).Subscribe(_ => notified++);
             disposable.Dispose();
 
             pointStore.Dispatch(new EmptyAction());

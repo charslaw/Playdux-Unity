@@ -9,17 +9,17 @@ namespace Playdux.test
     public class StoreNotificationTests
     {
         private const int Delay = 1;
-        
+
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
-        
+
         [TearDown]
         public void Teardown()
         {
             simpleStore?.Dispose();
             pointStore?.Dispose();
         }
-        
+
         [Test]
         public void ObserverNotNotifiedOnDispatchWhenReducerDoesNotChangeState()
         {

@@ -23,7 +23,7 @@ namespace Playdux.test
             public bool PreEffect(DispatchedAction dispatchedAction, IActionDispatcher dispatcher) => pre(dispatchedAction, dispatcher);
             public void PostEffect(DispatchedAction dispatchedAction, T state, IActionDispatcher dispatcher) => post(dispatchedAction, state, dispatcher);
         }
-        
+
         public class DoesNothingSideEffector<T> : FakeSideEffector<T>
         {
             public DoesNothingSideEffector() : base((_, _) => true) { }

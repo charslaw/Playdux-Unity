@@ -11,7 +11,7 @@ namespace Playdux.test
         public static SimpleTestState IdentitySimpleTestStateReducer(SimpleTestState state, IAction _) => state;
 
         public static SimpleTestState IncrementNSimpleTestStateReducer(SimpleTestState state, IAction _) => state with { N = state.N + 71 };
-        
+
         public static SimpleTestState AcceptAddSimpleTestStateReducer(SimpleTestState state, IAction action)
         {
             return action switch
