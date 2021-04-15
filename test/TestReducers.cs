@@ -16,8 +16,8 @@ namespace Playdux.test
         {
             return action switch
             {
-                SimpleStateAdd (var value) => state with { N = state.N + value },
-                BetterSimpleStateAdd (var value) => state with { N = state.N + value + 1 },
+                SimpleStateAddAction (var value) => state with { N = state.N + value },
+                BetterSimpleStateAddAction (var value) => state with { N = state.N + value + 1 },
                 _ => state
             };
         }

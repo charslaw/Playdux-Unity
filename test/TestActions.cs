@@ -5,7 +5,7 @@ namespace Playdux.test
 {
     internal record EmptyAction : IAction;
 
-    internal record SimpleStateAdd(int Value) : IAction;
+    internal record SimpleStateAddAction(int Value) : IAction;
 
-    internal record BetterSimpleStateAdd(int Value) : IAction;
+    internal record BetterSimpleStateAddAction(int Value) : IAction;
 }
