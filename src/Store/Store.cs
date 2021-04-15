@@ -50,14 +50,17 @@ namespace Playdux.src.Store
             actionStreamHandle = actionStream
                 .SelectMany(dispatchedAction =>
                 {
-                    // Evaluate all side effectors and determine if any of them want to reject the incoming action. ToArray forces all of them to be evaluated in case the `Any` below short circuits.
-                    var sideEffectorResults = sideEffectorCollection.Values.Select(sideEffector => sideEffector.PreEffect(dispatchedAction, this)).ToArray();
-                    var shouldInterrupt = sideEffectorResults.Any(allowed => !allowed);
-                    return shouldInterrupt ? Observable.Never<DispatchedAction>() : Observable.Return(dispatchedAction);
+                    foreach (var sideEffector in sideEffectorCollection.Values)
+                    {
+                        var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
+                        if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
+                    }
+
+                    return dispatchedAction.IsCanceled ? Observable.Never<DispatchedAction>() : Observable.Return(dispatchedAction);
                 })
                 .Select(dispatchedAction =>
                 {
-                    var (action, _, _) = dispatchedAction;
+                    var (action, _, _, _) = dispatchedAction;
                     var state = stateStream.Value;
                     if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
                     
@@ -74,15 +77,15 @@ namespace Playdux.src.Store
             Task.Run(() =>
             {
                 var token = actionQueueCancellationTokenSource.Token;
-                while (true)
+                while (!token.IsCancellationRequested)
                 {
-                    token.ThrowIfCancellationRequested();
-                    var next = actionQueue.Take();
-                    if (next is null) continue;
+                    var succeeded = actionQueue.TryTake(out var next, Timeout.Infinite, token);
+
+                    if (next is null || !succeeded) continue;
 
                     actionStream.OnNext(next);
                 }
-                // ReSharper disable once FunctionNeverReturns
+                token.ThrowIfCancellationRequested();
             }, actionQueueCancellationTokenSource.Token);
         }
 
@@ -92,7 +95,7 @@ namespace Playdux.src.Store
         public void Dispatch(IAction action)
         {
             ValidateInitializeAction(action);
-            actionQueue.Add(new DispatchedAction(action));
+            actionQueue.Add(new DispatchedAction(action), actionQueueCancellationTokenSource.Token);
         }
 
         /// Registers a new Side Effector to observe this Store.

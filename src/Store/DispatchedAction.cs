@@ -5,8 +5,8 @@ using System.Diagnostics;
 namespace Playdux.src.Store
 {
     /// An IAction wrapped with some additional metadata for debugging purposes.
-    public sealed record DispatchedAction(IAction Action, DateTime DispatchTime, StackTrace DispatchStackTrace)
+    public sealed record DispatchedAction(IAction Action, DateTime DispatchTime, StackTrace DispatchStackTrace, bool IsCanceled)
     {
-        public DispatchedAction(IAction action) : this(action, DateTime.Now, new StackTrace(1)) { }
+        public DispatchedAction(IAction action) : this(action, DateTime.Now, new StackTrace(1), false) { }
     }
 }
