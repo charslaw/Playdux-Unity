@@ -1,4 +1,6 @@
 #nullable enable
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using Playdux.src.Store;
 using static Playdux.test.TestUtils.TestUtils;
@@ -123,6 +125,143 @@ namespace Playdux.test
             simpleStore.Dispatch(new EmptyAction());
 
             Assert.AreEqual(0, executeCount);
+        }
+
+        [Test]
+        public void PreSideEffectorCantCancelOtherPreSideEffectors()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            var secondCalled = false;
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) => false));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    secondCalled = true;
+                    return true;
+                }
+            ));
+
+            simpleStore.Dispatch(new EmptyAction());
+
+            BlockingWait(Delay);
+            Assert.IsTrue(secondCalled);
+        }
+
+        [Test]
+        public void SideEffectorsWithSamePriorityActivatedInOrderOfAddition()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            var order = new List<int>();
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(0);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(1);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(2);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.Dispatch(new EmptyAction());
+
+            BlockingWait(Delay);
+            CollectionAssert.AreEqual(Enumerable.Range(0, 3), order);
+        }
+
+        [Test]
+        public void SideEffectorsOccurInPriorityOrder()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            var order = new List<int>();
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(1);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(0);
+                    return true;
+                },
+                priority: 1
+            ));
+
+            simpleStore.Dispatch(new EmptyAction());
+
+            BlockingWait(Delay);
+            CollectionAssert.AreEqual(Enumerable.Range(0, 2), order);
+        }
+
+        [Test]
+        public void SideEffectorInsertOrderIsCorrect()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            var order = new List<int>();
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(0);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(3);
+                    return true;
+                },
+                priority: -1
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(1);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(pre: (_, _) =>
+                {
+                    order.Add(2);
+                    return true;
+                },
+                priority: 0
+            ));
+
+            simpleStore.Dispatch(new EmptyAction());
+
+            BlockingWait(Delay);
+            CollectionAssert.AreEqual(Enumerable.Range(0, 4), order);
         }
     }
 }

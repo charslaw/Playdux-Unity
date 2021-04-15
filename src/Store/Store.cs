@@ -1,9 +1,7 @@
 #nullable enable
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UniRx;
@@ -30,9 +28,11 @@ namespace Playdux.src.Store
 
         /// Used to dispose the actionStream when this Store is done being used, to mitigate memory leaks.
         private readonly IDisposable actionStreamHandle;
-        
+
         /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
         private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
+
+        private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
 
         /// Used to cancel the background task on which the actionQueue is consumed.
         private readonly CancellationTokenSource actionQueueCancellationTokenSource = new();
@@ -50,7 +50,7 @@ namespace Playdux.src.Store
             actionStreamHandle = actionStream
                 .SelectMany(dispatchedAction =>
                 {
-                    foreach (var sideEffector in sideEffectorCollection.Values)
+                    foreach (var sideEffector in sideEffectorsByPriority)
                     {
                         var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
                         if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
@@ -63,7 +63,7 @@ namespace Playdux.src.Store
                     var (action, _, _, _) = dispatchedAction;
                     var state = stateStream.Value;
                     if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
-                    
+
                     // return both the action and the state produced by the action for the post side effector
                     return new { dispatchedAction, state = rootReducer(state, action) };
                 })
@@ -85,6 +85,7 @@ namespace Playdux.src.Store
 
                     actionStream.OnNext(next);
                 }
+
                 token.ThrowIfCancellationRequested();
             }, actionQueueCancellationTokenSource.Token);
         }
@@ -98,16 +99,42 @@ namespace Playdux.src.Store
             actionQueue.Add(new DispatchedAction(action), actionQueueCancellationTokenSource.Token);
         }
 
+        private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
+
         /// Registers a new Side Effector to observe this Store.
         public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector)
         {
             var id = Guid.NewGuid();
             sideEffectorCollection.Add(id, sideEffector);
+
+            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
+
+            // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
+            // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
+            if (index < 0) { index = ~index; }
+            // a side effector with the same priority already exists in the list, insert this one after the existing one.
+            else
+            {
+                while (++index < sideEffectorsByPriority.Count &&
+                    sideEffectorsByPriority[index].Priority == sideEffector.Priority) { }
+            }
+
+            sideEffectorsByPriority.Insert(index, sideEffector);
+
             return id;
         }
 
         /// Unregisters a previously registered Side Effector.
-        public void UnregisterSideEffector(Guid sideEffectorId) => sideEffectorCollection.Remove(sideEffectorId);
+        public void UnregisterSideEffector(Guid sideEffectorId)
+        {
+            var sideEffector = sideEffectorCollection[sideEffectorId];
+            sideEffectorCollection.Remove(sideEffectorId);
+
+            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
+            if (index < 0) return;
+
+            sideEffectorsByPriority.RemoveAt(index);
+        }
 
         /// Returns the current state filtered by the given selector.
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
@@ -136,10 +163,7 @@ namespace Playdux.src.Store
             var isInitializeAction = actionType.IsGenericType && actionType.GetGenericTypeDefinition() == typeof(InitializeAction<>);
             var isInitializeActionCorrectType = isInitializeAction && action is InitializeAction<TRootState>;
 
-            if (isInitializeAction && !isInitializeActionCorrectType)
-            {
-                throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState));
-            }
+            if (isInitializeAction && !isInitializeActionCorrectType) { throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState)); }
         }
 
         /// <inheritdoc cref="IDisposable.Dispose"/>

@@ -8,13 +8,16 @@ namespace Playdux.test
     {
         public class FakeSideEffector<T> : ISideEffector<T>
         {
+            public int Priority { get; }
+
             private readonly Func<DispatchedAction, IActionDispatcher, bool> pre;
             private readonly Action<DispatchedAction, T, IActionDispatcher> post;
 
-            public FakeSideEffector(Func<DispatchedAction, IActionDispatcher, bool>? pre = null, Action<DispatchedAction, T, IActionDispatcher>? post = null)
+            public FakeSideEffector(Func<DispatchedAction, IActionDispatcher, bool>? pre = null, Action<DispatchedAction, T, IActionDispatcher>? post = null, int priority = 0)
             {
                 this.pre = pre ?? ((_, _) => true);
                 this.post = post ?? ((_, _, _) => { });
+                Priority = priority;
             }
 
             public bool PreEffect(DispatchedAction dispatchedAction, IActionDispatcher dispatcher) => pre(dispatchedAction, dispatcher);
