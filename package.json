@@ -1,6 +1,6 @@
 {
   "name": "dev.coleschultz.playdux",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "displayName": "Playdux - Redux for Unity",
   "description": "Playdux is a Redux-style state container intended for use in Unity.",
   "unity": "2021.2",
