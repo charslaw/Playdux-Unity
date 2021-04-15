@@ -8,24 +8,24 @@ namespace Playdux.test
 {
     public class DispatchedActionTests
     {
-        private class TestAction : IAction {}
-        
+        private class TestAction : IAction { }
+
         [Test]
         public void HasCorrectDispatchedTime()
         {
             var now = DateTime.Now;
             var da = new DispatchedAction(new TestAction());
-            
-            Assert.That(da.DispatchTime, Is.EqualTo(now).Within(TimeSpan.FromMilliseconds(10)));
+
+            Assert.That(da.DispatchTime, Is.EqualTo(now).Within(TimeSpan.FromMilliseconds(10)), "DispatchedAction DispatchTime is incorrect.");
         }
 
         [Test]
         public void HasCorrectStackFrame()
         {
-           var da = new DispatchedAction(new TestAction());
-           var thisMethodInfo = new StackTrace().GetFrame(0).GetMethod();
-           
-           Assert.AreEqual(thisMethodInfo, da.DispatchStackTrace.GetFrame(0).GetMethod());
+            var da = new DispatchedAction(new TestAction());
+            var thisMethodInfo = new StackTrace().GetFrame(0).GetMethod();
+
+            Assert.AreEqual(thisMethodInfo, da.DispatchStackTrace.GetFrame(0).GetMethod(), "DispatchedAction stack track is incorrect.");
         }
     }
 }

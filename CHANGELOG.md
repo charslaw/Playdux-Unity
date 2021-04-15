@@ -4,6 +4,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 4.0.0
+
+*Merged to master on 2021-04-15*
+
+### ADDED
+
+- Added Side Effectors! This feature allows code to hook into the action stream and initiate side effects as well as interrupt actions and inject new ones
+  - Side Effectors can hook into the pipeline at two locations:
+    - `PreEffect` occurs before the action reaches the reducer.
+      At this point, the side effector can launch some asynchronous task, dispatch another action, or *prevent* the incoming action from being sent on to the reducer.
+    - `PostEffect` occurs after the action has been processed by the reducer.
+      In a post effect, a side effector can inspect the updated state after the reducer, launch an async task, or dispatch another action.
+  - Side Effectors can define a `Priority` which determines the order in which they'll be executed.
+
+### CHANGED
+
+- Adding Side Effectors has required some re-arrangement of the action pipeline and how it handles concurrency.
+  *The pipeline is no longer synchronous*, meaning that you can't be guaranteed that the state will be updated immediately after a call to `Dispatch`.
+  Instead, consumers should make use of the observable pattern presented via `ObservableFor`.
+
+---
+
 ## Version 3.0.0
 
 *Merged to master on 2021-04-12*

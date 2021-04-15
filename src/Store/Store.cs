@@ -1,6 +1,9 @@
 #nullable enable
-
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using UniRx;
 
 namespace Playdux.src.Store
@@ -10,67 +13,166 @@ namespace Playdux.src.Store
     /// Includes capability to dispatch actions to the store, get the current state, get the current state narrowed by
     /// a selector, and get an IObservable to the "selected" state.
     /// </summary>
-    public class Store<TRootState> : IStore<TRootState> where TRootState : class
+    public sealed class Store<TRootState> : IDisposable, IStore<TRootState> where TRootState : class
     {
-        /// <summary>The current state within the store.</summary>
+        /// The current state within the store.
         public TRootState State => stateStream.Value;
 
-        // The reducer used when an action is dispatched to the store.
-        private readonly Func<TRootState, IAction, TRootState> rootReducer;
+        /// Ensures that incoming actions maintain order and acts as a waiting line if multiple actions come in quick succession.
+        /// Additionally, this handles reentrancy when an action is dispatched from within the actionStream, for instance with SideEffectors that emit new actions.
+        private readonly BlockingCollection<DispatchedAction> actionQueue = new();
 
-        // Used to prevent multiple threads from concurrently dispatching actions which modify state.
-        private readonly object stateLock = new object();
-
+        /// A stream of the current state within the store.
+        /// This stream is safely shared to consumers (via ObservableFor) in such a way that consumer cancellation and errors are isolated from the main stream.
         private readonly BehaviorSubject<TRootState> stateStream;
 
-        /// <summary>Create a new store with a given initial state and reducer</summary>
-        public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer)
+        /// Used to dispose the actionStream when this Store is done being used, to mitigate memory leaks.
+        private readonly IDisposable actionStreamHandle;
+
+        /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
+        private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
+
+        private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
+
+        /// Used to cancel the background task on which the actionQueue is consumed.
+        private readonly CancellationTokenSource actionQueueCancellationTokenSource = new();
+
+        /// Create a new store with a given initial state and reducer
+        public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer, IEnumerable<ISideEffector<TRootState>>? initialSideEffectors = null)
         {
-            this.rootReducer = rootReducer;
+            if (initialSideEffectors is not null)
+            {
+                foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
+            }
+
+            var actionStream = new BehaviorSubject<DispatchedAction>(new DispatchedAction(new InitializeAction<TRootState>(initialState)));
             stateStream = new BehaviorSubject<TRootState>(initialState);
-            Dispatch(new InitializeAction<TRootState>(initialState));
+            actionStreamHandle = actionStream
+                .SelectMany(dispatchedAction =>
+                {
+                    foreach (var sideEffector in sideEffectorsByPriority)
+                    {
+                        var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
+                        if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
+                    }
+
+                    return dispatchedAction.IsCanceled ? Observable.Never<DispatchedAction>() : Observable.Return(dispatchedAction);
+                })
+                .Select(dispatchedAction =>
+                {
+                    var (action, _, _, _) = dispatchedAction;
+                    var state = stateStream.Value;
+                    if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
+
+                    // return both the action and the state produced by the action for the post side effector
+                    return new { dispatchedAction, state = rootReducer(state, action) };
+                })
+                .Do(actionState =>
+                {
+                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction, actionState.state, this);
+                })
+                .Subscribe(actionState => stateStream.OnNext(actionState.state));
+
+            // Spin up a background task to blockingly consume from the actionQueue and feed new actions into the actionStream.
+            Task.Run(() =>
+            {
+                var token = actionQueueCancellationTokenSource.Token;
+                while (!token.IsCancellationRequested)
+                {
+                    var succeeded = actionQueue.TryTake(out var next, Timeout.Infinite, token);
+
+                    if (next is null || !succeeded) continue;
+
+                    actionStream.OnNext(next);
+                }
+
+                token.ThrowIfCancellationRequested();
+            }, actionQueueCancellationTokenSource.Token);
         }
 
-        /// <summary>
         /// Dispatch an action to the Store. Changes store state according to the reducer provided at creation.
-        /// </summary>
         /// <remarks>If multiple clients call Dispatch concurrently, this call will block and actions will be consumed
         /// in FIFO order.</remarks>
         public void Dispatch(IAction action)
         {
-            var dispatchedAction = new DispatchedAction(action);
-
-            var actionAsInitializeAction = IsInitializeAction(action);
-
-            lock (stateLock)
-            {
-                var state = State;
-                if (actionAsInitializeAction is not null) state = actionAsInitializeAction.InitialState;
-                stateStream.OnNext(rootReducer(state, dispatchedAction.Action));
-            }
+            ValidateInitializeAction(action);
+            actionQueue.Add(new DispatchedAction(action), actionQueueCancellationTokenSource.Token);
         }
 
-        /// <summary>Returns the current state filtered by the given selector.</summary>
+        private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
+
+        /// Registers a new Side Effector to observe this Store.
+        public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector)
+        {
+            var id = Guid.NewGuid();
+            sideEffectorCollection.Add(id, sideEffector);
+
+            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
+
+            // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
+            // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
+            if (index < 0) { index = ~index; }
+            // a side effector with the same priority already exists in the list, insert this one after the existing one.
+            else
+            {
+                while (++index < sideEffectorsByPriority.Count &&
+                    sideEffectorsByPriority[index].Priority == sideEffector.Priority) { }
+            }
+
+            sideEffectorsByPriority.Insert(index, sideEffector);
+
+            return id;
+        }
+
+        /// Unregisters a previously registered Side Effector.
+        public void UnregisterSideEffector(Guid sideEffectorId)
+        {
+            var sideEffector = sideEffectorCollection[sideEffectorId];
+            sideEffectorCollection.Remove(sideEffectorId);
+
+            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
+            if (index < 0) return;
+
+            sideEffectorsByPriority.RemoveAt(index);
+        }
+
+        /// Returns the current state filtered by the given selector.
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
 
-        /// <summary>Produces an IObservable looking at the state specified by the given selector.</summary>
+        /// Produces an IObservable looking at the state specified by the given selector.
         /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
         public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
-            Observable.CreateSafe<TRootState>(observer => stateStream.Subscribe(observer))
+            Observable.CreateSafe<TRootState>(observer => stateStream.Subscribe(
+                    onNext: next =>
+                    {
+                        try { observer.OnNext(next); }
+                        catch (Exception e) { observer.OnError(e); }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted
+                ))
                 .StartWith(State)
                 .Select(selector)
                 .DistinctUntilChanged()
                 .Skip(notifyImmediately ? 0 : 1);
 
-        private static InitializeAction<TRootState>? IsInitializeAction(IAction action)
+        /// Throws an error if an incorrectly typed InitializeAction is dispatched to this store.
+        private static void ValidateInitializeAction(IAction action)
         {
             var actionType = action.GetType();
             var isInitializeAction = actionType.IsGenericType && actionType.GetGenericTypeDefinition() == typeof(InitializeAction<>);
             var isInitializeActionCorrectType = isInitializeAction && action is InitializeAction<TRootState>;
 
-            if (!isInitializeAction) return null;
-            if (isInitializeActionCorrectType) return (InitializeAction<TRootState>) action;
-            throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState));
+            if (isInitializeAction && !isInitializeActionCorrectType) { throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState)); }
+        }
+
+        /// <inheritdoc cref="IDisposable.Dispose"/>
+        public void Dispose()
+        {
+            actionQueue.Dispose();
+            stateStream.Dispose();
+            actionStreamHandle.Dispose();
+            actionQueueCancellationTokenSource.Dispose();
         }
     }
 }
