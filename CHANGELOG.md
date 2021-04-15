@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
       At this point, the side effector can launch some asynchronous task, dispatch another action, or *prevent* the incoming action from being sent on to the reducer.
     - `PostEffect` occurs after the action has been processed by the reducer.
       In a post effect, a side effector can inspect the updated state after the reducer, launch an async task, or dispatch another action.
+  - Side Effectors can define a `Priority` which determines the order in which they'll be executed.
 
 ### CHANGED
 
