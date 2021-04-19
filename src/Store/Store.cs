@@ -143,7 +143,7 @@ namespace Playdux.src.Store
         /// Produces an IObservable looking at the state specified by the given selector.
         /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
         public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
-            Observable.CreateSafe<TRootState>(observer => stateStream.Subscribe(
+            Observable.Create<TRootState>(observer => stateStream.Subscribe(
                     onNext: next =>
                     {
                         try { observer.OnNext(next); }
