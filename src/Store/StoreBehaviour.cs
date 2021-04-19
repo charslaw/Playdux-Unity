@@ -12,8 +12,11 @@ namespace Playdux.src.Store
     /// StoreBehaviour is abstract because you, the developer, must define a sublcass of it in order to initialize the
     /// store correctly.
     /// </remarks>
+    [DefaultExecutionOrder(EXECUTION_PRIORITY)]
     public abstract class StoreBehaviour<TRootState> : MonoBehaviour, IStore<TRootState> where TRootState : class
     {
+        private const int EXECUTION_PRIORITY = -100;
+        
         /// The <see cref="Store{TRootState}" /> that this <see cref="StoreBehaviour{TRootState}"/> wraps.
         /// This is set in the base StoreBehaviour.Awake Unity event and should not be set elsewhere.
         public IStore<TRootState>? Store { get; private set; }
