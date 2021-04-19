@@ -45,6 +45,25 @@ namespace Playdux.test
         }
 
         [Test]
+        public void PostSideEffectorGetsUpdatedStateFromAction()
+        {
+            SimpleTestState init = new(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            int? actualValue = null;
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(post: (_, store) =>
+            {
+                actualValue = store.State.N;
+            }));
+            
+            SimpleTestState newState = new(10);
+            simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
+            
+            BlockingWait(Delay);
+            Assert.AreEqual(10, actualValue, "Side effector did not get new state created from dispatched action");
+        }
+
+        [Test]
         public void PreSideEffectorCanProduceSideEffects()
         {
             SimpleTestState init = new(0);
@@ -71,7 +90,7 @@ namespace Playdux.test
             simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             var executeCount = 0;
-            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(post: (_, _, _) => executeCount++));
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(post: (_, _) => executeCount++));
 
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));

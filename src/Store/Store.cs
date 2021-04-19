@@ -67,11 +67,12 @@ namespace Playdux.src.Store
                     // return both the action and the state produced by the action for the post side effector
                     return new { dispatchedAction, state = rootReducer(state, action) };
                 })
+                .Do(actionState => stateStream.OnNext(actionState.state))
                 .Do(actionState =>
                 {
-                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction, actionState.state, this);
+                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction,this);
                 })
-                .Subscribe(actionState => stateStream.OnNext(actionState.state));
+                .Subscribe();
 
             // Spin up a background task to blockingly consume from the actionQueue and feed new actions into the actionStream.
             Task.Run(() =>
