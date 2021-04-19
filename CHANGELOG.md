@@ -4,6 +4,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 6.0.0
+
+*Merged to master on 2021-04-19*
+
+### CHANGED
+
+- Hoist `RegisterSideEffector` and `UnregisterSideEffector` into the `IActionDispatcher` interface.
+- Add generic `TRootState` parameter to `IActionDispatcher` interface.
+- `Store.ObservableFor` will now correctly emit `onError` if an error occurs in an `onNext` handler.
+- Set a default execution order for `StoreBehaviour`.
+
+---
+
 ## Version 5.0.0
 
 *Merged to master on 2021-04-19*
