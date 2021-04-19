@@ -4,6 +4,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 5.0.0
+
+*Merged to master on 2021-04-19*
+
+### CHANGED
+
+- Changed signature for `ISideEffector.PreEffect` and `ISideEffector.PostEffect` to accept an `IStore` rather than an `IActionDispatcher`.
+  - This allows side effectors to inspect state as well as dispatch new actions.
+- Additionally, the `ISideEffector.PostEffect` signature was changed to remove the `state` parameter as the new state can now be retrieved from the provided `IStore`.
+
+---
+
 ## Version 4.0.0
 
 *Merged to master on 2021-04-15*
