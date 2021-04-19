@@ -32,6 +32,7 @@ namespace Playdux.src.Store
         /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
         private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
 
+        /// Stores SideEffectors in priority order.
         private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
 
         /// Used to cancel the background task on which the actionQueue is consumed.
@@ -70,7 +71,7 @@ namespace Playdux.src.Store
                 .Do(actionState => stateStream.OnNext(actionState.state))
                 .Do(actionState =>
                 {
-                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction,this);
+                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction, this);
                 })
                 .Subscribe();
 
@@ -91,9 +92,7 @@ namespace Playdux.src.Store
             }, actionQueueCancellationTokenSource.Token);
         }
 
-        /// Dispatch an action to the Store. Changes store state according to the reducer provided at creation.
-        /// <remarks>If multiple clients call Dispatch concurrently, this call will block and actions will be consumed
-        /// in FIFO order.</remarks>
+        /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
         public void Dispatch(IAction action)
         {
             ValidateInitializeAction(action);
@@ -102,7 +101,7 @@ namespace Playdux.src.Store
 
         private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
 
-        /// Registers a new Side Effector to observe this Store.
+        /// <inheritdoc cref="IActionDispatcher{TRootState}.RegisterSideEffector"/>
         public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector)
         {
             var id = Guid.NewGuid();
@@ -110,12 +109,15 @@ namespace Playdux.src.Store
 
             var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
 
-            // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
-            // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
-            if (index < 0) { index = ~index; }
-            // a side effector with the same priority already exists in the list, insert this one after the existing one.
+            if (index < 0)
+            {
+                // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
+                // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
+                index = ~index;
+            }
             else
             {
+                // a side effector with the same priority already exists in the list, insert this one after the existing one.
                 while (++index < sideEffectorsByPriority.Count &&
                     sideEffectorsByPriority[index].Priority == sideEffector.Priority) { }
             }
@@ -125,7 +127,7 @@ namespace Playdux.src.Store
             return id;
         }
 
-        /// Unregisters a previously registered Side Effector.
+        /// <inheritdoc cref="IActionDispatcher{TRootState}.UnregisterSideEffector"/>
         public void UnregisterSideEffector(Guid sideEffectorId)
         {
             var sideEffector = sideEffectorCollection[sideEffectorId];
@@ -137,11 +139,10 @@ namespace Playdux.src.Store
             sideEffectorsByPriority.RemoveAt(index);
         }
 
-        /// Returns the current state filtered by the given selector.
+        /// <inheritdoc cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
 
-        /// Produces an IObservable looking at the state specified by the given selector.
-        /// <remarks>The returned IObservable will only emit when the selected state changes.</remarks>
+        /// <inheritdoc cref="IStateContainer{TRootState}.ObservableFor{TSelectedState}"/>
         public IObservable<TSelectedState> ObservableFor<TSelectedState>(Func<TRootState, TSelectedState> selector, bool notifyImmediately = false) =>
             Observable.Create<TRootState>(observer => stateStream.Subscribe(
                     onNext: next =>
