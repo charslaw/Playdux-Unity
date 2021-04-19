@@ -71,7 +71,7 @@ namespace Playdux.test
             simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
 
             var executeCount = 0;
-            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(post: (_, _, _) => executeCount++));
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>(post: (_, _) => executeCount++));
 
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
