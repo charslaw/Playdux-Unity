@@ -1,6 +1,6 @@
 {
   "name": "dev.coleschultz.playdux",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "displayName": "Playdux",
   "description": "Playdux is a uni-directional state container intended for use in Unity.",
   "unity": "2021.2",
