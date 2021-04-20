@@ -2,14 +2,11 @@
 using NUnit.Framework;
 using Playdux.src.Store;
 using UniRx;
-using static Playdux.test.TestUtils.TestUtils;
 
 namespace Playdux.test
 {
     public class StoreNotificationTests
     {
-        private const int DELAY = 1;
-
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
 
@@ -31,7 +28,6 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(DELAY);
             Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -46,7 +42,6 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(DELAY);
             Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -62,7 +57,6 @@ namespace Playdux.test
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(DELAY);
             Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -77,7 +71,6 @@ namespace Playdux.test
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(DELAY);
             Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
     }
