@@ -2,9 +2,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using Playdux.src.Utils;
 using UniRx;
+using UnityEngine;
 
 namespace Playdux.src.Store
 {
@@ -18,25 +18,21 @@ namespace Playdux.src.Store
         /// The current state within the store.
         public TRootState State => stateStream.Value;
 
-        /// Ensures that incoming actions maintain order and acts as a waiting line if multiple actions come in quick succession.
-        /// Additionally, this handles reentrancy when an action is dispatched from within the actionStream, for instance with SideEffectors that emit new actions.
-        private readonly BlockingCollection<DispatchedAction> actionQueue = new();
+        /// Reduces state according to actions dispatched to the store.
+        private readonly Func<TRootState, IAction, TRootState> rootReducer;
+
+        /// Holds actions in a defined FIFO order to ensure actions are processed in the order that they are received.
+        private readonly ConcurrentQueue<DispatchedAction> actionQueue = new();
 
         /// A stream of the current state within the store.
         /// This stream is safely shared to consumers (via ObservableFor) in such a way that consumer cancellation and errors are isolated from the main stream.
         private readonly BehaviorSubject<TRootState> stateStream;
-
-        /// Used to dispose the actionStream when this Store is done being used, to mitigate memory leaks.
-        private readonly IDisposable actionStreamHandle;
 
         /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
         private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
 
         /// Stores SideEffectors in priority order.
         private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
-
-        /// Used to cancel the background task on which the actionQueue is consumed.
-        private readonly CancellationTokenSource actionQueueCancellationTokenSource = new();
 
         /// Create a new store with a given initial state and reducer
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer, IEnumerable<ISideEffector<TRootState>>? initialSideEffectors = null)
@@ -46,57 +42,68 @@ namespace Playdux.src.Store
                 foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
             }
 
-            var actionStream = new BehaviorSubject<DispatchedAction>(new DispatchedAction(new InitializeAction<TRootState>(initialState)));
+            this.rootReducer = rootReducer;
             stateStream = new BehaviorSubject<TRootState>(initialState);
-            actionStreamHandle = actionStream
-                .SelectMany(dispatchedAction =>
-                {
-                    foreach (var sideEffector in sideEffectorsByPriority)
-                    {
-                        var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
-                        if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
-                    }
-
-                    return dispatchedAction.IsCanceled ? Observable.Never<DispatchedAction>() : Observable.Return(dispatchedAction);
-                })
-                .Select(dispatchedAction =>
-                {
-                    var (action, _, _, _) = dispatchedAction;
-                    var state = stateStream.Value;
-                    if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
-
-                    // return both the action and the state produced by the action for the post side effector
-                    return new { dispatchedAction, state = rootReducer(state, action) };
-                })
-                .Do(actionState => stateStream.OnNext(actionState.state))
-                .Do(actionState =>
-                {
-                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction, this);
-                })
-                .Subscribe();
-
-            // Spin up a background task to blockingly consume from the actionQueue and feed new actions into the actionStream.
-            Task.Run(() =>
-            {
-                var token = actionQueueCancellationTokenSource.Token;
-                while (!token.IsCancellationRequested)
-                {
-                    var succeeded = actionQueue.TryTake(out var next, Timeout.Infinite, token);
-
-                    if (next is null || !succeeded) continue;
-
-                    actionStream.OnNext(next);
-                }
-
-                token.ThrowIfCancellationRequested();
-            }, actionQueueCancellationTokenSource.Token);
         }
+
+        /// Ensures that only one call to Dispatch will end up consuming the action queue at a time.
+        private bool isConsumingActionQueue;
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
         public void Dispatch(IAction action)
         {
             ValidateInitializeAction(action);
-            actionQueue.Add(new DispatchedAction(action), actionQueueCancellationTokenSource.Token);
+
+            actionQueue.Enqueue(new DispatchedAction(action));
+
+            // If another call to Dispatch is already pulling items from the queue, just add this action to the queue and
+            if (isConsumingActionQueue) return;
+
+            using (new DisposableLatch(() => isConsumingActionQueue = true, () => isConsumingActionQueue = false))
+            {
+                while (actionQueue.TryDequeue(out var next)) { DispatchInternal(next); }
+            }
+        }
+
+        /// Handles a single dispatched action from the queue, activating pre effects, reducing state, updating state, then activating post effects.
+        private void DispatchInternal(DispatchedAction dispatchedAction)
+        {
+            // Pre Effects
+            foreach (var sideEffector in sideEffectorsByPriority)
+            {
+                try
+                {
+                    var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
+                    if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error encountered in side effector pre effect");
+                    Debug.LogException(e);
+                }
+            }
+
+            if (dispatchedAction.IsCanceled) return;
+
+            // Reduce
+            var action = dispatchedAction.Action;
+            var state = State;
+            if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
+            state = rootReducer(state, action);
+
+            // Update State
+            stateStream.OnNext(state);
+
+            // Post Effects
+            foreach (var sideEffector in sideEffectorCollection.Values)
+            {
+                try { sideEffector.PostEffect(dispatchedAction, this); }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error encountered in side effector post effect");
+                    Debug.LogException(e);
+                }
+            }
         }
 
         private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
@@ -169,12 +176,6 @@ namespace Playdux.src.Store
         }
 
         /// <inheritdoc cref="IDisposable.Dispose"/>
-        public void Dispose()
-        {
-            actionQueue.Dispose();
-            stateStream.Dispose();
-            actionStreamHandle.Dispose();
-            actionQueueCancellationTokenSource.Dispose();
-        }
+        public void Dispose() { stateStream.Dispose(); }
     }
 }
