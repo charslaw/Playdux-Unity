@@ -8,7 +8,7 @@ namespace Playdux.test
 {
     public class StoreNotificationTests
     {
-        private const int Delay = 1;
+        private const int DELAY = 1;
 
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
@@ -31,7 +31,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -46,7 +46,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -62,7 +62,7 @@ namespace Playdux.test
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(0, notified, "The consumer was not notified the correct number of times.");
         }
 
@@ -77,7 +77,7 @@ namespace Playdux.test
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(1, notified, "The consumer was not notified the correct number of times.");
         }
     }

@@ -8,7 +8,7 @@ namespace Playdux.test
 {
     public class StoreTests
     {
-        private const int Delay = 1;
+        private const int DELAY = 1;
 
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
@@ -37,7 +37,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(init, simpleStore.State, "State does not match initial state after applying identity reducer.");
         }
 
@@ -49,7 +49,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(243, simpleStore.State.N, "State does not match expected value produced by reducer");
         }
 
@@ -62,7 +62,7 @@ namespace Playdux.test
             Point newState = new(10, 11);
             pointStore.Dispatch(new InitializeAction<Point>(newState));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(newState with { }, pointStore.State, "State does not match expected value from InitializeAction");
         }
 
@@ -104,7 +104,7 @@ namespace Playdux.test
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(1, notified, "Disposing a subscription broke another subscriber.");
         }
     }

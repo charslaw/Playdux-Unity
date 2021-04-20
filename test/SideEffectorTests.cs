@@ -9,7 +9,7 @@ namespace Playdux.test
 {
     public class SideEffectorTests
     {
-        private const int Delay = 5;
+        private const int DELAY = 5;
 
         private Store<SimpleTestState>? simpleStore;
 
@@ -26,7 +26,7 @@ namespace Playdux.test
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(newState with { }, simpleStore.State, "State was not modified by InitializeAction");
         }
 
@@ -40,7 +40,7 @@ namespace Playdux.test
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(init with { }, simpleStore.State, "State was modified by InitializeAction");
         }
 
@@ -59,7 +59,7 @@ namespace Playdux.test
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
             
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(10, actualValue, "Side effector did not get new state created from dispatched action");
         }
 
@@ -79,7 +79,7 @@ namespace Playdux.test
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(1, executeCount, "Pre side effect did not trigger");
         }
 
@@ -95,7 +95,7 @@ namespace Playdux.test
             SimpleTestState newState = new(10);
             simpleStore.Dispatch(new InitializeAction<SimpleTestState>(newState));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreEqual(1, executeCount, "Post side effect did not trigger");
         }
 
@@ -120,7 +120,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new SimpleStateAddAction(5));
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.AreNotEqual(5, simpleStore.State.N, "Effect of SimpleStateAddAction was applied when it shouldn't have been");
             Assert.AreEqual(6, simpleStore.State.N, "Effect of BetterSimpleStateAddAction was not applied");
         }
@@ -165,7 +165,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             Assert.IsTrue(secondCalled, "The second side effector was prevented from being called");
         }
 
@@ -203,7 +203,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             CollectionAssert.AreEqual(Enumerable.Range(0, 3), order, $"Side effectors were not called in order of registration: [ {string.Join(",", order)} ]");
         }
 
@@ -233,7 +233,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             CollectionAssert.AreEqual(Enumerable.Range(0, 2), order, $"Side effectors were not called in priority order: [ {string.Join(",", order)} ]");
         }
 
@@ -279,7 +279,7 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
+            BlockingWait(DELAY);
             CollectionAssert.AreEqual(Enumerable.Range(0, 4), order, $"Side effectors were not inserted in the correct order: [ {string.Join(",", order)} ]");
         }
     }
