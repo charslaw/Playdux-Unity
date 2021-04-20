@@ -39,6 +39,8 @@ namespace Playdux.src.Store
             if (initialSideEffectors is null) return;
 
             foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
+
+            Dispatch(new InitializeAction<TRootState>(initialState));
         }
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
