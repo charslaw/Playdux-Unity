@@ -32,14 +32,13 @@ namespace Playdux.src.Store
         /// Create a new store with a given initial state and reducer
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer, IEnumerable<ISideEffector<TRootState>>? initialSideEffectors = null)
         {
-            if (initialSideEffectors is not null)
-            {
-                foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
-            }
-
             this.rootReducer = rootReducer;
             stateStream = new BehaviorSubject<TRootState>(initialState);
             actionQueue = new ActionQueue(DispatchInternal);
+
+            if (initialSideEffectors is null) return;
+
+            foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
         }
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
@@ -122,10 +121,10 @@ namespace Playdux.src.Store
             var isInitializeAction = actionType.IsGenericType && actionType.GetGenericTypeDefinition() == typeof(InitializeAction<>);
             var isInitializeActionCorrectType = isInitializeAction && action is InitializeAction<TRootState>;
 
-            if (isInitializeAction && !isInitializeActionCorrectType) { throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState)); }
+            if (isInitializeAction && !isInitializeActionCorrectType) throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState));
         }
 
         /// <inheritdoc cref="IDisposable.Dispose"/>
-        public void Dispose() { stateStream.Dispose(); }
+        public void Dispose() => stateStream.Dispose();
     }
 }
