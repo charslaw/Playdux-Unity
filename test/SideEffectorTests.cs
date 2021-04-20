@@ -298,5 +298,31 @@ namespace Playdux.test
 
             CollectionAssert.AreEqual(Enumerable.Range(0, 4), order, $"Side effectors were not inserted in the correct order: [ {string.Join(",", order)} ]");
         }
+
+        [Test]
+        public void UnregisteringSideEffectorRemovesCorrectSideEffector()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            var firstCalled = false;
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>((_, _) => {
+                firstCalled = true;
+                return true;
+            }, priority: 0));
+            
+            var secondCalled = false;
+            var secondID = simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>((_, _) => {
+                secondCalled = true;
+                return true;
+            }, priority: 0));
+            
+            simpleStore.UnregisterSideEffector(secondID);
+            
+            simpleStore.Dispatch(new EmptyAction());
+            
+            Assert.AreEqual(false, secondCalled, "Second side effector was called despite being unregistered!");
+            Assert.AreEqual(true, firstCalled, "First was not called despite remaining registered");
+        }
     }
 }

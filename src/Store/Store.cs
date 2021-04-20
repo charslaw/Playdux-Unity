@@ -1,8 +1,6 @@
 #nullable enable
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Playdux.src.Utils;
 using UniRx;
 using UnityEngine;
 
@@ -28,11 +26,8 @@ namespace Playdux.src.Store
         /// This stream is safely shared to consumers (via ObservableFor) in such a way that consumer cancellation and errors are isolated from the main stream.
         private readonly BehaviorSubject<TRootState> stateStream;
 
-        /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
-        private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
-
-        /// Stores SideEffectors in priority order.
-        private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
+        /// Holds side effectors in a collection that preserves priority while also providing fast addition and removal.
+        private readonly SideEffectorCollection<TRootState> sideEffectors = new();
 
         /// Create a new store with a given initial state and reducer
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer, IEnumerable<ISideEffector<TRootState>>? initialSideEffectors = null)
@@ -58,7 +53,7 @@ namespace Playdux.src.Store
         private void DispatchInternal(DispatchedAction dispatchedAction)
         {
             // Pre Effects
-            foreach (var sideEffector in sideEffectorsByPriority)
+            foreach (var sideEffector in sideEffectors.ByPriority)
             {
                 try
                 {
@@ -84,7 +79,7 @@ namespace Playdux.src.Store
             stateStream.OnNext(state);
 
             // Post Effects
-            foreach (var sideEffector in sideEffectorCollection.Values)
+            foreach (var sideEffector in sideEffectors.ByPriority)
             {
                 try { sideEffector.PostEffect(dispatchedAction, this); }
                 catch (Exception e)
@@ -95,45 +90,11 @@ namespace Playdux.src.Store
             }
         }
 
-        private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
-
         /// <inheritdoc cref="IActionDispatcher{TRootState}.RegisterSideEffector"/>
-        public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector)
-        {
-            var id = Guid.NewGuid();
-            sideEffectorCollection.Add(id, sideEffector);
-
-            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
-
-            if (index < 0)
-            {
-                // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
-                // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
-                index = ~index;
-            }
-            else
-            {
-                // a side effector with the same priority already exists in the list, insert this one after the existing one.
-                while (++index < sideEffectorsByPriority.Count &&
-                    sideEffectorsByPriority[index].Priority == sideEffector.Priority) { }
-            }
-
-            sideEffectorsByPriority.Insert(index, sideEffector);
-
-            return id;
-        }
+        public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector) => sideEffectors.Register(sideEffector);
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.UnregisterSideEffector"/>
-        public void UnregisterSideEffector(Guid sideEffectorId)
-        {
-            var sideEffector = sideEffectorCollection[sideEffectorId];
-            sideEffectorCollection.Remove(sideEffectorId);
-
-            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
-            if (index < 0) return;
-
-            sideEffectorsByPriority.RemoveAt(index);
-        }
+        public void UnregisterSideEffector(Guid sideEffectorId) => sideEffectors.Unregister(sideEffectorId);
 
         /// <inheritdoc cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
