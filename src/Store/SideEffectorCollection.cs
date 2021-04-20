@@ -39,7 +39,7 @@ namespace Playdux.src.Store
 
         public void Unregister(Guid id)
         {
-            var sideEffector = table[id];
+            if (!table.TryGetValue(id, out var sideEffector)) throw new ArgumentException("Given ID does not correspond with a known side effector", nameof(id));
             table.Remove(id);
             
             var index = priority.FindIndex(other => other == sideEffector);

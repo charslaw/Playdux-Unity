@@ -1,8 +1,10 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Playdux.src.Store;
+using UnityEngine.TestTools;
 
 namespace Playdux.test
 {
@@ -323,6 +325,39 @@ namespace Playdux.test
             
             Assert.AreEqual(false, secondCalled, "Second side effector was called despite being unregistered!");
             Assert.AreEqual(true, firstCalled, "First was not called despite remaining registered");
+        }
+
+        [Test]
+        public void SideEffectorThrowingDoesNotPreventExecutionOfOtherSideEffectors()
+        {
+            // Tell unity to ignore the Debug.LogError and Debug.LogException that will happen when a side effector throws an error
+            LogAssert.ignoreFailingMessages = true;
+
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+            
+            simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>((_, _) => throw new Exception()));
+            
+            var secondCalled = false;
+            var secondID = simpleStore.RegisterSideEffector(new TestSideEffectors.FakeSideEffector<SimpleTestState>((_, _) => {
+                secondCalled = true;
+                return true;
+            }));
+            
+            simpleStore.UnregisterSideEffector(secondID);
+            
+            simpleStore.Dispatch(new EmptyAction());
+            
+            Assert.AreEqual(false, secondCalled, "Second side effector was not called after the first threw an exception.");
+        }
+
+        [Test]
+        public void UnregisteringNonexistantSideEffectorThrows()
+        {
+            var init = new SimpleTestState(0);
+            simpleStore = new Store<SimpleTestState>(init, TestReducers.IdentitySimpleTestStateReducer);
+
+            Assert.Throws<ArgumentException>(() => simpleStore.UnregisterSideEffector(Guid.NewGuid()));
         }
     }
 }

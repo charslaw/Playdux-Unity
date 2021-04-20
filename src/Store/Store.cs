@@ -59,11 +59,7 @@ namespace Playdux.src.Store
                     var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
                     if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
                 }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error encountered in side effector pre effect");
-                    Debug.LogException(e);
-                }
+                catch (Exception e) { Debug.LogException(new SideEffectorExecutionException(SideEffectorType.Pre, e)); }
             }
 
             if (dispatchedAction.IsCanceled) return;
@@ -81,11 +77,7 @@ namespace Playdux.src.Store
             foreach (var sideEffector in sideEffectors.ByPriority)
             {
                 try { sideEffector.PostEffect(dispatchedAction, this); }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error encountered in side effector post effect");
-                    Debug.LogException(e);
-                }
+                catch (Exception e) { Debug.LogException(new SideEffectorExecutionException(SideEffectorType.Post, e)); }
             }
         }
 
