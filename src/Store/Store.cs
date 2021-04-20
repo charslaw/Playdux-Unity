@@ -22,7 +22,7 @@ namespace Playdux.src.Store
         private readonly Func<TRootState, IAction, TRootState> rootReducer;
 
         /// Holds actions in a defined FIFO order to ensure actions are processed in the order that they are received.
-        private readonly ConcurrentQueue<DispatchedAction> actionQueue = new();
+        private readonly ActionQueue actionQueue;
 
         /// A stream of the current state within the store.
         /// This stream is safely shared to consumers (via ObservableFor) in such a way that consumer cancellation and errors are isolated from the main stream.
@@ -44,25 +44,14 @@ namespace Playdux.src.Store
 
             this.rootReducer = rootReducer;
             stateStream = new BehaviorSubject<TRootState>(initialState);
+            actionQueue = new ActionQueue(DispatchInternal);
         }
-
-        /// Ensures that only one call to Dispatch will end up consuming the action queue at a time.
-        private bool isConsumingActionQueue;
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
         public void Dispatch(IAction action)
         {
             ValidateInitializeAction(action);
-
-            actionQueue.Enqueue(new DispatchedAction(action));
-
-            // If another call to Dispatch is already pulling items from the queue, just add this action to the queue and
-            if (isConsumingActionQueue) return;
-
-            using (new DisposableLatch(() => isConsumingActionQueue = true, () => isConsumingActionQueue = false))
-            {
-                while (actionQueue.TryDequeue(out var next)) { DispatchInternal(next); }
-            }
+            actionQueue.Dispatch(new DispatchedAction(action));
         }
 
         /// Handles a single dispatched action from the queue, activating pre effects, reducing state, updating state, then activating post effects.
