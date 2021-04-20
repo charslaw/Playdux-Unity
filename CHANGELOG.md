@@ -2,6 +2,14 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Version 7.0.1
+
+*Merged to master on 2021-04-20*
+
+### FIXED
+
+- Fixed the Store not initializing itself with the initial state.
+
 ---
 
 ## Version 7.0.0
