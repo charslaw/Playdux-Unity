@@ -3,7 +3,6 @@ using System;
 using NUnit.Framework;
 using Playdux.src.Store;
 using UniRx;
-using static Playdux.test.TestUtils.TestUtils;
 
 namespace Playdux.test
 {
@@ -36,7 +35,6 @@ namespace Playdux.test
             simpleStore.Dispatch(new EmptyAction());
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait();
             Assert.AreEqual(0, errorSeen, $"Saw {errorSeen} errors");
             Assert.AreEqual(2, notified, $"Saw {notified} notifications");
         }
@@ -63,7 +61,6 @@ namespace Playdux.test
             simpleStore.Dispatch(new EmptyAction());
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait();
             Assert.AreEqual(0, errorSeen, $"Saw {errorSeen} errors");
             Assert.AreEqual(2, notified, $"Saw {notified} notifications");
         }
@@ -88,7 +85,6 @@ namespace Playdux.test
             simpleStore.Dispatch(new EmptyAction());
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait();
             Assert.AreEqual(0, errors, $"Saw {errors} errors");
             Assert.AreEqual(2, notified, $"Saw {notified} notifications");
         }

@@ -1,15 +1,13 @@
 #nullable enable
+using System;
 using NUnit.Framework;
 using Playdux.src.Store;
 using UniRx;
-using static Playdux.test.TestUtils.TestUtils;
 
 namespace Playdux.test
 {
     public class StoreTests
     {
-        private const int Delay = 1;
-
         private Store<SimpleTestState>? simpleStore;
         private Store<Point>? pointStore;
 
@@ -37,7 +35,6 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
             Assert.AreEqual(init, simpleStore.State, "State does not match initial state after applying identity reducer.");
         }
 
@@ -49,7 +46,6 @@ namespace Playdux.test
 
             simpleStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
             Assert.AreEqual(243, simpleStore.State.N, "State does not match expected value produced by reducer");
         }
 
@@ -62,7 +58,6 @@ namespace Playdux.test
             Point newState = new(10, 11);
             pointStore.Dispatch(new InitializeAction<Point>(newState));
 
-            BlockingWait(Delay);
             Assert.AreEqual(newState with { }, pointStore.State, "State does not match expected value from InitializeAction");
         }
 
@@ -99,12 +94,14 @@ namespace Playdux.test
 
             var notified = 0;
             var disposable = pointStore.ObservableFor(state => state.Y).Subscribe(_ => { });
-            pointStore.ObservableFor(state => state.Y).Subscribe(_ => notified++);
+            pointStore.ObservableFor(state => state.Y)
+                .Subscribe(
+                    _ => notified++,
+                    e => { Console.Error.WriteLine(e); });
             disposable.Dispose();
 
             pointStore.Dispatch(new EmptyAction());
 
-            BlockingWait(Delay);
             Assert.AreEqual(1, notified, "Disposing a subscription broke another subscriber.");
         }
     }

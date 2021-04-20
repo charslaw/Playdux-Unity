@@ -1,10 +1,8 @@
 #nullable enable
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using UniRx;
+using UnityEngine;
 
 namespace Playdux.src.Store
 {
@@ -18,126 +16,76 @@ namespace Playdux.src.Store
         /// The current state within the store.
         public TRootState State => stateStream.Value;
 
-        /// Ensures that incoming actions maintain order and acts as a waiting line if multiple actions come in quick succession.
-        /// Additionally, this handles reentrancy when an action is dispatched from within the actionStream, for instance with SideEffectors that emit new actions.
-        private readonly BlockingCollection<DispatchedAction> actionQueue = new();
+        /// Reduces state according to actions dispatched to the store.
+        private readonly Func<TRootState, IAction, TRootState> rootReducer;
+
+        /// Holds actions in a defined FIFO order to ensure actions are processed in the order that they are received.
+        private readonly ActionQueue actionQueue;
 
         /// A stream of the current state within the store.
         /// This stream is safely shared to consumers (via ObservableFor) in such a way that consumer cancellation and errors are isolated from the main stream.
         private readonly BehaviorSubject<TRootState> stateStream;
 
-        /// Used to dispose the actionStream when this Store is done being used, to mitigate memory leaks.
-        private readonly IDisposable actionStreamHandle;
-
-        /// Stores SideEffectors in such a way that they can be unregistered later if necessary.
-        private readonly Dictionary<Guid, ISideEffector<TRootState>> sideEffectorCollection = new();
-
-        /// Stores SideEffectors in priority order.
-        private readonly List<ISideEffector<TRootState>> sideEffectorsByPriority = new();
-
-        /// Used to cancel the background task on which the actionQueue is consumed.
-        private readonly CancellationTokenSource actionQueueCancellationTokenSource = new();
+        /// Holds side effectors in a collection that preserves priority while also providing fast addition and removal.
+        private readonly SideEffectorCollection<TRootState> sideEffectors = new();
 
         /// Create a new store with a given initial state and reducer
         public Store(TRootState initialState, Func<TRootState, IAction, TRootState> rootReducer, IEnumerable<ISideEffector<TRootState>>? initialSideEffectors = null)
         {
-            if (initialSideEffectors is not null)
-            {
-                foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
-            }
-
-            var actionStream = new BehaviorSubject<DispatchedAction>(new DispatchedAction(new InitializeAction<TRootState>(initialState)));
+            this.rootReducer = rootReducer;
             stateStream = new BehaviorSubject<TRootState>(initialState);
-            actionStreamHandle = actionStream
-                .SelectMany(dispatchedAction =>
-                {
-                    foreach (var sideEffector in sideEffectorsByPriority)
-                    {
-                        var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
-                        if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
-                    }
+            actionQueue = new ActionQueue(DispatchInternal);
 
-                    return dispatchedAction.IsCanceled ? Observable.Never<DispatchedAction>() : Observable.Return(dispatchedAction);
-                })
-                .Select(dispatchedAction =>
-                {
-                    var (action, _, _, _) = dispatchedAction;
-                    var state = stateStream.Value;
-                    if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
+            if (initialSideEffectors is null) return;
 
-                    // return both the action and the state produced by the action for the post side effector
-                    return new { dispatchedAction, state = rootReducer(state, action) };
-                })
-                .Do(actionState => stateStream.OnNext(actionState.state))
-                .Do(actionState =>
-                {
-                    foreach (var sideEffector in sideEffectorCollection.Values) sideEffector.PostEffect(actionState.dispatchedAction, this);
-                })
-                .Subscribe();
-
-            // Spin up a background task to blockingly consume from the actionQueue and feed new actions into the actionStream.
-            Task.Run(() =>
-            {
-                var token = actionQueueCancellationTokenSource.Token;
-                while (!token.IsCancellationRequested)
-                {
-                    var succeeded = actionQueue.TryTake(out var next, Timeout.Infinite, token);
-
-                    if (next is null || !succeeded) continue;
-
-                    actionStream.OnNext(next);
-                }
-
-                token.ThrowIfCancellationRequested();
-            }, actionQueueCancellationTokenSource.Token);
+            foreach (var sideEffector in initialSideEffectors) RegisterSideEffector(sideEffector);
         }
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.Dispatch"/>
         public void Dispatch(IAction action)
         {
             ValidateInitializeAction(action);
-            actionQueue.Add(new DispatchedAction(action), actionQueueCancellationTokenSource.Token);
+            actionQueue.Dispatch(new DispatchedAction(action));
         }
 
-        private readonly IComparer<ISideEffector<TRootState>> comparer = new SideEffectorPriorityComparer<TRootState>();
+        /// Handles a single dispatched action from the queue, activating pre effects, reducing state, updating state, then activating post effects.
+        private void DispatchInternal(DispatchedAction dispatchedAction)
+        {
+            // Pre Effects
+            foreach (var sideEffector in sideEffectors.ByPriority)
+            {
+                try
+                {
+                    var shouldAllow = sideEffector.PreEffect(dispatchedAction, this);
+                    if (!shouldAllow) dispatchedAction = dispatchedAction with { IsCanceled = true };
+                }
+                catch (Exception e) { Debug.LogException(new SideEffectorExecutionException(SideEffectorType.Pre, e)); }
+            }
+
+            if (dispatchedAction.IsCanceled) return;
+
+            // Reduce
+            var action = dispatchedAction.Action;
+            var state = State;
+            if (action is InitializeAction<TRootState> castAction) state = castAction.InitialState;
+            state = rootReducer(state, action);
+
+            // Update State
+            stateStream.OnNext(state);
+
+            // Post Effects
+            foreach (var sideEffector in sideEffectors.ByPriority)
+            {
+                try { sideEffector.PostEffect(dispatchedAction, this); }
+                catch (Exception e) { Debug.LogException(new SideEffectorExecutionException(SideEffectorType.Post, e)); }
+            }
+        }
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.RegisterSideEffector"/>
-        public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector)
-        {
-            var id = Guid.NewGuid();
-            sideEffectorCollection.Add(id, sideEffector);
-
-            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
-
-            if (index < 0)
-            {
-                // a side effector with the same priority was not found, so this one should be inserted at the bitwise complement of the returned index.
-                // See <https://docs.microsoft.com/en-us/dotnet/api/System.Collections.Generic.List-1.BinarySearch>
-                index = ~index;
-            }
-            else
-            {
-                // a side effector with the same priority already exists in the list, insert this one after the existing one.
-                while (++index < sideEffectorsByPriority.Count &&
-                    sideEffectorsByPriority[index].Priority == sideEffector.Priority) { }
-            }
-
-            sideEffectorsByPriority.Insert(index, sideEffector);
-
-            return id;
-        }
+        public Guid RegisterSideEffector(ISideEffector<TRootState> sideEffector) => sideEffectors.Register(sideEffector);
 
         /// <inheritdoc cref="IActionDispatcher{TRootState}.UnregisterSideEffector"/>
-        public void UnregisterSideEffector(Guid sideEffectorId)
-        {
-            var sideEffector = sideEffectorCollection[sideEffectorId];
-            sideEffectorCollection.Remove(sideEffectorId);
-
-            var index = sideEffectorsByPriority.BinarySearch(sideEffector, comparer);
-            if (index < 0) return;
-
-            sideEffectorsByPriority.RemoveAt(index);
-        }
+        public void UnregisterSideEffector(Guid sideEffectorId) => sideEffectors.Unregister(sideEffectorId);
 
         /// <inheritdoc cref="IStateContainer{TRootState}.Select{TSelectedState}"/>
         public TSelectedState Select<TSelectedState>(Func<TRootState, TSelectedState> selector) => selector(State);
@@ -165,16 +113,10 @@ namespace Playdux.src.Store
             var isInitializeAction = actionType.IsGenericType && actionType.GetGenericTypeDefinition() == typeof(InitializeAction<>);
             var isInitializeActionCorrectType = isInitializeAction && action is InitializeAction<TRootState>;
 
-            if (isInitializeAction && !isInitializeActionCorrectType) { throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState)); }
+            if (isInitializeAction && !isInitializeActionCorrectType) throw new InitializeTypeMismatchException(actionType.GetGenericArguments()[0], typeof(TRootState));
         }
 
         /// <inheritdoc cref="IDisposable.Dispose"/>
-        public void Dispose()
-        {
-            actionQueue.Dispose();
-            stateStream.Dispose();
-            actionStreamHandle.Dispose();
-            actionQueueCancellationTokenSource.Dispose();
-        }
+        public void Dispose() => stateStream.Dispose();
     }
 }

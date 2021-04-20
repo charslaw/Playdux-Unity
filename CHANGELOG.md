@@ -4,6 +4,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## Version 7.0.0
+
+*Merged to master on 2021-04-20*
+
+### CHANGED
+
+- Return to using a synchronous action pipeline
+  - This was done because the previous implementation caused problems due to being required to use the main thread to interop with UnityEngine APIs.
+
+---
+
 ## Version 6.0.0
 
 *Merged to master on 2021-04-19*
